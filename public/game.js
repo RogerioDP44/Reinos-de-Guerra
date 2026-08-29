@@ -736,16 +736,168 @@ async function toggleRankingModal() {
   }
 }
 
-// =========================================================================
-// RENDER LOOP DA VILA IMPERIAL (CANVAS ISOMÉTRICO 2D INTERATIVO)
+// ANIMAÇÕES 2D, ALDEÕES, FUMAÇA E CICLO DIA/NOITE
 // =========================================================================
 let frameCount = 0;
+let villagers = [];
+let smokeParticles = [];
+
+function getDayNightCycle() {
+  const cycleSeconds = 120;
+  const progress = (Date.now() / 1000 % cycleSeconds) / cycleSeconds;
+
+  let shadowColor = 'rgba(0, 0, 0, 0)';
+  let bgGrassColor = '#14532d';
+  let phaseName = '☀️ DIA';
+  let isNight = false;
+
+  if (progress < 0.45) {
+    phaseName = '☀️ DIA';
+    shadowColor = 'rgba(0, 0, 0, 0)';
+    bgGrassColor = '#14532d';
+  } else if (progress < 0.55) {
+    const t = (progress - 0.45) / 0.10;
+    phaseName = '🌅 PÔR DO SOL';
+    shadowColor = `rgba(217, 119, 6, ${t * 0.35})`;
+    bgGrassColor = '#164e28';
+  } else if (progress < 0.90) {
+    phaseName = '🌙 NOITE';
+    shadowColor = 'rgba(9, 13, 22, 0.65)';
+    bgGrassColor = '#0f3820';
+    isNight = true;
+  } else {
+    const t = (progress - 0.90) / 0.10;
+    phaseName = '🌅 AMANHECER';
+    shadowColor = `rgba(9, 13, 22, ${0.65 * (1 - t)})`;
+    bgGrassColor = '#14532d';
+  }
+
+  return { progress, phaseName, shadowColor, bgGrassColor, isNight };
+}
+
+function updateAndRenderVillagers(startX, startY) {
+  if (villagers.length === 0 && selfKingdom) {
+    const roles = [
+      { icon: '🧑‍🌾' },
+      { icon: '🔨' },
+      { icon: '🧙‍♂️' },
+      { icon: '💂‍♂️' }
+    ];
+
+    roles.forEach((r, idx) => {
+      villagers.push({
+        id: idx,
+        icon: r.icon,
+        x: startX + 100 + (idx * 60),
+        y: startY + 120 + (idx * 40),
+        targetX: startX + Math.random() * 450,
+        targetY: startY + Math.random() * 350,
+        speed: 0.7 + Math.random() * 0.5,
+        stepOffset: Math.random() * 10
+      });
+    });
+  }
+
+  villagers.forEach(v => {
+    const dx = v.targetX - v.x;
+    const dy = v.targetY - v.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < 8) {
+      v.targetX = startX + Math.random() * 450;
+      v.targetY = startY + Math.random() * 350;
+    } else {
+      v.x += (dx / dist) * v.speed;
+      v.y += (dy / dist) * v.speed;
+    }
+
+    const bounce = Math.abs(Math.sin((frameCount + v.stepOffset) * 0.15)) * 5;
+
+    ctx.font = '22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(v.icon, v.x, v.y - bounce);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(v.x, v.y, 8, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function updateAndRenderSmoke(buildings, startX, startY) {
+  if (frameCount % 10 === 0) {
+    buildings.forEach(b => {
+      if (b.level > 0 && ['goldmine', 'sawmill', 'alchemy'].includes(b.id)) {
+        const bx = startX + (b.x * 130);
+        const by = startY + (b.y * 110);
+        smokeParticles.push({
+          x: bx + (Math.random() * 8 - 4),
+          y: by - 35,
+          radius: 3 + Math.random() * 3,
+          alpha: 0.6,
+          vx: Math.random() * 0.3 - 0.15,
+          vy: -0.8 - Math.random() * 0.4
+        });
+      }
+    });
+  }
+
+  for (let i = smokeParticles.length - 1; i >= 0; i--) {
+    const p = smokeParticles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.radius += 0.08;
+    p.alpha -= 0.008;
+
+    if (p.alpha <= 0) {
+      smokeParticles.splice(i, 1);
+      continue;
+    }
+
+    ctx.fillStyle = `rgba(226, 232, 240, ${p.alpha})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawWavingFlag(bx, by) {
+  const wave = Math.sin(frameCount * 0.12) * 4;
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath();
+  ctx.moveTo(bx + 12, by - 55);
+  ctx.quadraticCurveTo(bx + 26 + wave, by - 50, bx + 36, by - 55 + wave);
+  ctx.lineTo(bx + 12, by - 38);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(bx + 12, by - 60);
+  ctx.lineTo(bx + 12, by - 30);
+  ctx.stroke();
+}
+
+function drawBuildingTorch(bx, by) {
+  const flamePulse = 3 + Math.sin(frameCount * 0.2 + bx) * 2;
+  const grad = ctx.createRadialGradient(bx, by, 2, bx, by, 30);
+  grad.addColorStop(0, 'rgba(251, 191, 36, 0.8)');
+  grad.addColorStop(0.5, 'rgba(245, 158, 11, 0.3)');
+  grad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(bx, by, 30, 0, Math.PI * 2);
+  ctx.fill();
+}
 
 function renderLoop() {
   frameCount++;
+  const cycle = getDayNightCycle();
 
-  // Fundo Verde Gramado do Império
-  ctx.fillStyle = '#14532d';
+  // Fundo do Terreno Imperial
+  ctx.fillStyle = cycle.bgGrassColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.save();
@@ -772,6 +924,9 @@ function renderLoop() {
     const startX = canvas.width / 2 - 200;
     const startY = canvas.height / 2 - 150;
 
+    // Fumaça das Chaminés dos Edifícios
+    updateAndRenderSmoke(selfKingdom.buildings, startX, startY);
+
     selfKingdom.buildings.forEach(b => {
       const bx = startX + (b.x * 130);
       const by = startY + (b.y * 110);
@@ -792,6 +947,16 @@ function renderLoop() {
       ctx.fillText(b.icon, bx, by + 12 + pulse);
       ctx.globalAlpha = 1.0;
 
+      // Bandeira no Centro da Vila
+      if (b.id === 'townhall' && !isUnbuilt) {
+        drawWavingFlag(bx, by);
+      }
+
+      // Tocha acesa no edifício se for noite
+      if (cycle.isNight && !isUnbuilt) {
+        drawBuildingTorch(bx, by);
+      }
+
       // Nome do Edifício e Nível
       ctx.fillStyle = isUnbuilt ? '#94a3b8' : '#ffffff';
       ctx.font = 'bold 12px Outfit, sans-serif';
@@ -810,7 +975,10 @@ function renderLoop() {
       }
     });
 
-    // 10. ATUALIZAR E RENDERIZAR EFEITOS FLUTUANTES (+10 OURO)
+    // Aldeões Caminhando pela Vila
+    updateAndRenderVillagers(startX, startY);
+
+    // Efeitos Flutuantes (+10 Ouro)
     for (let i = floatingEffects.length - 1; i >= 0; i--) {
       const ef = floatingEffects[i];
       ef.y -= 0.6;
@@ -820,6 +988,32 @@ function renderLoop() {
       ctx.font = 'bold 16px Outfit, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(ef.text, ef.x, ef.y);
+
+      if (ef.life <= 0) floatingEffects.splice(i, 1);
+    }
+  }
+
+  // Camada de Sombra / Iluminação Dinâmica do Ciclo Dia/Noite
+  if (cycle.shadowColor !== 'rgba(0, 0, 0, 0)') {
+    ctx.fillStyle = cycle.shadowColor;
+    ctx.fillRect(-2000, -2000, 6000, 6000);
+  }
+
+  ctx.restore();
+
+  // Relógio do Ciclo no Canto Superior
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+  ctx.fillRect(canvas.width - 150, 15, 135, 30);
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(canvas.width - 150, 15, 135, 30);
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = 'bold 13px Outfit, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(cycle.phaseName, canvas.width - 82, 35);
+
+  requestAnimationFrame(renderLoop);
+}
 
 // --- SISTEMA DE CLÃS & ALIANÇAS (GUILDAS) ---
 function toggleClanModal() {
