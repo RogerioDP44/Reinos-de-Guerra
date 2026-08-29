@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Reinos de Guerra - Estratégia Imperial MMO</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -99,10 +99,10 @@
 
     <!-- PAINEL PRINCIPAL DE AÇÕES (CANTO INFERIOR DIREITO) -->
     <div class="hud-main-actions">
-      <button class="btn-action-main btn-attack" onclick="toggleAttackModal()">⚔️ ATAQUE DE REINOS</button>
-      <button class="btn-action-main btn-train" onclick="toggleArmyModal()">🏹 TREINAR TROPAS</button>
-      <button class="btn-action-main btn-upgrade" onclick="toggleBuildingsModal()">🏗️ EDIFÍCIOS & OBRAS</button>
-      <button class="btn-action-main btn-shield" onclick="buyShieldModal()">🛡️ ESCUDO (30 💎)</button>
+      <button class="btn-action-main btn-attack" onclick="toggleAttackModal()">⚔️ ATAQUE</button>
+      <button class="btn-action-main btn-train" onclick="toggleArmyModal()">🏹 TROPAS</button>
+      <button class="btn-action-main btn-upgrade" onclick="toggleBuildingsModal()">🏗️ OBRAS</button>
+      <button class="btn-action-main btn-shield" onclick="buyShieldModal()">🛡️ ESCUDO</button>
     </div>
 
     <!-- MENU FLUTUANTE DE CONFIGURAÇÕES -->
@@ -112,10 +112,14 @@
     </div>
 
     <!-- CHAT DA GUERRA (CANTO INFERIOR ESQUERDO) -->
-    <div class="hud-card chat-card glass-panel">
+    <div id="chat-card" class="hud-card chat-card glass-panel">
+      <div class="chat-header">
+        <span>💬 Chat da Guerra</span>
+        <button type="button" class="btn-chat-toggle" onclick="toggleChatCard()">–</button>
+      </div>
       <div id="chat-messages" class="chat-messages"></div>
       <form onsubmit="handleSendChat(event)" class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Mensagem para o Império..." autocomplete="off">
+        <input type="text" id="chat-input" placeholder="Mensagem..." autocomplete="off">
         <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
       </form>
     </div>

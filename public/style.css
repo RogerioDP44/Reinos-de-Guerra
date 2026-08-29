@@ -618,6 +618,144 @@ body, html {
   margin: 0;
 }
 
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fbbf24;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.btn-chat-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-card.minimized {
+  height: 38px !important;
+  overflow: hidden;
+}
+
+.chat-card.minimized .chat-messages,
+.chat-card.minimized .chat-input-row {
+  display: none !important;
+}
+
+/* --- REGRAS DE RESPONSIVIDADE (MOBILE, TABLET & DESKTOP) --- */
+
+@media (max-width: 900px) {
+  .resource-bar {
+    top: 8px;
+    padding: 8px 12px;
+    gap: 10px;
+    width: 96vw;
+    justify-content: space-between;
+  }
+
+  .kingdom-title-box {
+    padding-right: 8px;
+  }
+
+  .kingdom-name {
+    font-size: 13px;
+  }
+
+  .resources-grid {
+    gap: 10px;
+  }
+
+  .res-icon {
+    font-size: 18px;
+  }
+
+  .res-label {
+    display: none; /* Oculta labels de texto no celular para economizar espaço */
+  }
+
+  .res-val {
+    font-size: 12px;
+  }
+
+  .hud-actions-menu {
+    top: 65px;
+    right: 10px;
+  }
+
+  .btn-icon-hud {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .hud-main-actions {
+    bottom: 12px;
+    right: 10px;
+    left: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .btn-action-main {
+    padding: 12px 10px;
+    font-size: 13px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .chat-card {
+    bottom: 125px; /* Eleva o chat no celular para não cobrir a barra de ações */
+    left: 10px;
+    width: calc(100vw - 20px);
+    max-width: 380px;
+    height: 160px;
+    z-index: 10;
+  }
+
+  .modal-box {
+    width: 95vw;
+    max-height: 90vh;
+    padding: 16px;
+  }
+
+  .auth-box {
+    padding: 20px 16px;
+    max-width: 94vw;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-area .game-icon {
+    font-size: 42px;
+  }
+
+  .logo-area h1 {
+    font-size: 18px;
+  }
+
+  .resource-bar .btn-gold {
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+
+  .buildings-grid, .troops-grid, .shop-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .cookie-text a {
   color: var(--gold-color);
   text-decoration: underline;

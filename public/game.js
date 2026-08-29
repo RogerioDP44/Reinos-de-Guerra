@@ -92,8 +92,9 @@ function resizeCanvas() {
   canvas.height = window.innerHeight;
 }
 
-// CONTROLE DE ARRASTAR A CÂMERA DO MAPA
+// CONTROLE DE ARRASTAR A CÂMERA DO MAPA (MOUSE + TOUCH MOBILE)
 function setupCameraDrag() {
+  // Mouse (Desktop)
   canvas.addEventListener('mousedown', (e) => {
     isDragging = true;
     dragStart = { x: e.clientX - cameraOffset.x, y: e.clientY - cameraOffset.y };
@@ -107,6 +108,32 @@ function setupCameraDrag() {
   });
 
   window.addEventListener('mouseup', () => { isDragging = false; });
+
+  // Touch (Celulares & Tablets)
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      dragStart = { x: e.touches[0].clientX - cameraOffset.x, y: e.touches[0].clientY - cameraOffset.y };
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (isDragging && e.touches.length === 1) {
+      cameraOffset.x = e.touches[0].clientX - dragStart.x;
+      cameraOffset.y = e.touches[0].clientY - dragStart.y;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', () => { isDragging = false; });
+}
+
+function toggleChatCard() {
+  const card = document.getElementById('chat-card');
+  if (card) {
+    card.classList.toggle('minimized');
+    const btn = card.querySelector('.btn-chat-toggle');
+    if (btn) btn.innerText = card.classList.contains('minimized') ? '+' : '–';
+  }
 }
 
 // WEBSOCKETS (SOCKET.IO)
