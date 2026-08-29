@@ -139,6 +139,56 @@ app.get('/api/kingdom/list-enemies', (req, res) => {
   res.json(db.getKingdomList(username));
 });
 
+// --- ROTAS DE CLÃS & ALIANÇAS (GUILDAS) ---
+app.post('/api/clan/create', (req, res) => {
+  try {
+    const { username, name, tag, description } = req.body;
+    const cleanName = escapeHtml(name);
+    const cleanTag = escapeHtml(tag);
+    const cleanDesc = escapeHtml(description);
+    const clan = db.createClan(username, cleanName, cleanTag, cleanDesc);
+    const updatedUser = db.getUser(username);
+    res.json({ success: true, clan, user: sanitizeUser(updatedUser) });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/clan/join', (req, res) => {
+  try {
+    const { username, clanId } = req.body;
+    const clan = db.joinClan(username, clanId);
+    const updatedUser = db.getUser(username);
+    res.json({ success: true, clan, user: sanitizeUser(updatedUser) });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/clan/leave', (req, res) => {
+  try {
+    const { username } = req.body;
+    db.leaveClan(username);
+    const updatedUser = db.getUser(username);
+    res.json({ success: true, user: sanitizeUser(updatedUser) });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+app.get('/api/clan/my-clan', (req, res) => {
+  const username = req.query.username;
+  if (!username) return res.status(400).json({ message: 'Username é obrigatório' });
+  const user = db.getUser(username);
+  if (!user || !user.clan) return res.json({ success: false, hasClan: false });
+  const clan = db.getClanInfo(user.clan);
+  res.json({ success: true, hasClan: true, clan });
+});
+
+app.get('/api/clan/list', (req, res) => {
+  res.json(db.getClanList());
+});
+
 app.post('/api/kingdom/attack-enemy', (req, res) => {
   try {
     const { attackerName, defenderName } = req.body;

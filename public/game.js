@@ -821,10 +821,203 @@ function renderLoop() {
       ctx.textAlign = 'center';
       ctx.fillText(ef.text, ef.x, ef.y);
 
-      if (ef.life <= 0) floatingEffects.splice(i, 1);
-    }
-  }
+// --- SISTEMA DE CLÃS & ALIANÇAS (GUILDAS) ---
+function toggleClanModal() {
+  if (!selfKingdom) return;
+  const modal = document.getElementById('clan-modal');
+  const isOpening = modal.classList.contains('hidden');
+  modal.classList.toggle('hidden');
 
-  ctx.restore();
-  requestAnimationFrame(renderLoop);
+  if (isOpening) {
+    switchClanTab('my-clan');
+  }
+}
+
+function switchClanTab(tab) {
+  document.getElementById('tab-my-clan').classList.toggle('active', tab === 'my-clan');
+  document.getElementById('tab-search-clan').classList.toggle('active', tab === 'search-clan');
+  document.getElementById('tab-create-clan').classList.toggle('active', tab === 'create-clan');
+
+  document.getElementById('clan-view-my').classList.toggle('hidden', tab !== 'my-clan');
+  document.getElementById('clan-view-search').classList.toggle('hidden', tab !== 'search-clan');
+  document.getElementById('clan-view-create').classList.toggle('hidden', tab !== 'create-clan');
+
+  if (tab === 'my-clan') loadMyClanView();
+  if (tab === 'search-clan') loadSearchClansView();
+}
+
+async function loadMyClanView() {
+  if (!selfKingdom) return;
+  const detailsDiv = document.getElementById('my-clan-details');
+  detailsDiv.innerHTML = '<p style="color:var(--text-muted);">Carregando informações da Aliança...</p>';
+
+  try {
+    const res = await fetch(`/api/clan/my-clan?username=${selfKingdom.username}`);
+    const data = await res.json();
+
+    if (!data.hasClan) {
+      detailsDiv.innerHTML = `
+        <div style="text-align:center; padding: 24px;">
+          <div style="font-size:48px; margin-bottom:12px;">🛡️</div>
+          <h3 style="color:#fbbf24; margin-bottom:8px;">Você não pertence a nenhum Clã!</h3>
+          <p style="color:var(--text-muted); font-size:14px; margin-bottom:16px;">
+            Junte-se a uma aliança de jogadores para compartilhar troféus, conversar no chat privado e dominar o mapa!
+          </p>
+          <div style="font-size:12px; color:#f59e0b; margin-bottom:16px;">
+            🔒 Requer Centro da Vila Nível 3 para participar de Clãs.
+          </div>
+          <button class="btn btn-gold btn-glow" style="width:auto; padding:12px 24px;" onclick="switchClanTab('search-clan')">PROCURAR CLÃS EXISTENTES 🔍</button>
+        </div>
+      `;
+      return;
+    }
+
+    const c = data.clan;
+    let membersHtml = '';
+    c.membersDetails.forEach(m => {
+      membersHtml += `
+        <div class="enemy-card" style="margin-bottom:8px; padding:10px 14px;">
+          <div>
+            <b>${m.isLeader ? '👑 LÍDER: ' : '⚔️ '} ${m.kingdomName}</b>
+            <span style="font-size:12px; color:var(--text-muted);">(${m.username})</span>
+          </div>
+          <div>🏆 ${m.trophies} Troféus</div>
+        </div>
+      `;
+    });
+
+    detailsDiv.innerHTML = `
+      <div class="glass-panel" style="padding:16px; margin-bottom:16px; border-color:var(--gold-color);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2 style="color:#fbbf24; font-family:'Cinzel', serif;">[${c.tag}] ${c.name}</h2>
+            <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">${c.description || 'Aliança de Impérios Poderosos'}</p>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:18px; font-weight:bold; color:#fbbf24;">🏆 ${c.totalTrophies}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${c.members.length} Membro(s)</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:12px; width:auto;" onclick="leaveClan()">SAIR DO CLÃ 🚪</button>
+      </div>
+
+      <h3>Membros da Aliança:</h3>
+      <div style="margin-top:10px;">${membersHtml}</div>
+    `;
+  } catch (err) {
+    detailsDiv.innerHTML = '<p class="error-msg">Erro ao carregar Clã.</p>';
+  }
+}
+
+async function loadSearchClansView() {
+  const listDiv = document.getElementById('clans-list');
+  listDiv.innerHTML = '<p style="color:var(--text-muted);">Buscando clãs...</p>';
+
+  try {
+    const res = await fetch('/api/clan/list');
+    const clans = await res.json();
+    listDiv.innerHTML = '';
+
+    if (clans.length === 0) {
+      listDiv.innerHTML = '<p style="color:var(--text-muted);">Nenhum Clã foi fundado ainda. Seja o primeiro a fundar uma Aliança!</p>';
+      return;
+    }
+
+    clans.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'enemy-card';
+      card.innerHTML = `
+        <div>
+          <div style="font-weight:bold; font-size:16px; color:#fbbf24;">
+            🛡️ [${c.tag}] ${c.name}
+          </div>
+          <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">
+            Líder: <b>${c.leader}</b> | 🏆 ${c.totalTrophies} Troféus Totais
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+            ${c.description || ''}
+          </div>
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="joinClan('${c.id}')">ENTRAR NO CLÃ ⚔️</button>
+      `;
+      listDiv.appendChild(card);
+    });
+  } catch (err) {
+    listDiv.innerHTML = '<p class="error-msg">Erro ao buscar clãs.</p>';
+  }
+}
+
+async function handleCreateClanSubmit(e) {
+  e.preventDefault();
+  if (!selfKingdom) return;
+  document.getElementById('create-clan-error').innerText = '';
+
+  const name = document.getElementById('create-clan-name').value;
+  const tag = document.getElementById('create-clan-tag').value;
+  const description = document.getElementById('create-clan-desc').value;
+
+  try {
+    const res = await fetch('/api/clan/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: selfKingdom.username, name, tag, description })
+    });
+    const data = await res.json();
+    if (data.success) {
+      playSound('gold');
+      selfKingdom = data.user;
+      updateHud(selfKingdom);
+      alert('🎉 Clã fundado com sucesso! Seja bem-vindo, Líder!');
+      switchClanTab('my-clan');
+    } else {
+      document.getElementById('create-clan-error').innerText = data.message;
+    }
+  } catch (err) {
+    document.getElementById('create-clan-error').innerText = 'Erro ao criar clã.';
+  }
+}
+
+async function joinClan(clanId) {
+  if (!selfKingdom) return;
+  try {
+    const res = await fetch('/api/clan/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: selfKingdom.username, clanId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      playSound('gold');
+      selfKingdom = data.user;
+      updateHud(selfKingdom);
+      alert('⚔️ Você entrou para a Aliança!');
+      switchClanTab('my-clan');
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {
+    alert('Erro ao entrar no clã.');
+  }
+}
+
+async function leaveClan() {
+  if (!selfKingdom) return;
+  if (confirm('Deseja realmente sair da sua Aliança?')) {
+    try {
+      const res = await fetch('/api/clan/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: selfKingdom.username })
+      });
+      const data = await res.json();
+      if (data.success) {
+        selfKingdom = data.user;
+        updateHud(selfKingdom);
+        alert('Você saiu do Clã.');
+        switchClanTab('my-clan');
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {}
+  }
 }

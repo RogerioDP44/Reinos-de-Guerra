@@ -448,6 +448,142 @@ class Database {
       .sort((a, b) => b.trophies - a.trophies)
       .slice(0, limit);
   }
+
+  // --- SISTEMA DE CLÃS & ALIANÇAS (GUILDAS) ---
+  createClan(username, clanName, tag, description) {
+    const cleanUser = username.toLowerCase();
+    const user = this.getUser(cleanUser);
+    if (!user) throw new Error('Usuário não encontrado.');
+
+    const townhall = user.buildings.find(b => b.id === 'townhall');
+    const townhallLevel = townhall ? townhall.level : 1;
+    if (townhallLevel < 3) {
+      throw new Error('🔒 É necessário Centro da Vila Nível 3 para fundar um Clã!');
+    }
+
+    if (user.clan) throw new Error('Você já pertence a um Clã! Saia do clã atual antes de criar outro.');
+
+    const cleanName = clanName.trim();
+    const cleanTag = tag.trim().toUpperCase();
+    if (cleanName.length < 3) throw new Error('Nome do Clã deve ter pelo menos 3 caracteres.');
+    if (cleanTag.length < 2 || cleanTag.length > 5) throw new Error('Tag do Clã deve ter de 2 a 5 letras.');
+
+    if (user.gold < 500) throw new Error('Requer 🪙 500 de Ouro para fundar um Clã.');
+    user.gold -= 500;
+
+    const clanId = 'clan_' + Date.now();
+    const newClan = {
+      id: clanId,
+      name: cleanName,
+      tag: cleanTag,
+      description: (description || '').trim().substring(0, 150),
+      leader: user.username,
+      members: [user.username],
+      donatedArmy: { warrior: 0, archer: 0, wizard: 0, dragon: 0 },
+      chat: [],
+      createdAt: new Date().toISOString()
+    };
+
+    if (!this.data.clans) this.data.clans = {};
+    this.data.clans[clanId] = newClan;
+    user.clan = clanId;
+
+    this.save();
+    return newClan;
+  }
+
+  joinClan(username, clanId) {
+    const cleanUser = username.toLowerCase();
+    const user = this.getUser(cleanUser);
+    if (!user) throw new Error('Usuário não encontrado.');
+
+    const townhall = user.buildings.find(b => b.id === 'townhall');
+    const townhallLevel = townhall ? townhall.level : 1;
+    if (townhallLevel < 3) {
+      throw new Error('🔒 É necessário Centro da Vila Nível 3 para entrar em um Clã!');
+    }
+
+    if (user.clan) throw new Error('Você já pertence a um Clã.');
+
+    if (!this.data.clans) this.data.clans = {};
+    const clan = this.data.clans[clanId];
+    if (!clan) throw new Error('Clã não encontrado.');
+
+    if (!clan.members.includes(user.username)) {
+      clan.members.push(user.username);
+    }
+    user.clan = clanId;
+
+    this.save();
+    return clan;
+  }
+
+  leaveClan(username) {
+    const cleanUser = username.toLowerCase();
+    const user = this.getUser(cleanUser);
+    if (!user || !user.clan) throw new Error('Usuário não pertence a nenhum Clã.');
+
+    const clan = this.data.clans[user.clan];
+    if (clan) {
+      clan.members = clan.members.filter(m => m !== user.username);
+      if (clan.leader === user.username) {
+        if (clan.members.length > 0) {
+          clan.leader = clan.members[0];
+        } else {
+          delete this.data.clans[user.clan];
+        }
+      }
+    }
+
+    user.clan = null;
+    this.save();
+    return true;
+  }
+
+  getClanInfo(clanId) {
+    if (!this.data.clans) this.data.clans = {};
+    const clan = this.data.clans[clanId];
+    if (!clan) return null;
+
+    let totalTrophies = 0;
+    const membersDetails = clan.members.map(m => {
+      const u = this.getUser(m);
+      if (u) totalTrophies += (u.trophies || 0);
+      return {
+        username: m,
+        kingdomName: u ? u.kingdomName : m,
+        trophies: u ? u.trophies : 0,
+        isLeader: m === clan.leader,
+        isVip: u ? u.isVip : false
+      };
+    });
+
+    return {
+      ...clan,
+      totalTrophies,
+      membersDetails
+    };
+  }
+
+  getClanList() {
+    if (!this.data.clans) this.data.clans = {};
+    return Object.values(this.data.clans).map(c => {
+      let totalTrophies = 0;
+      c.members.forEach(m => {
+        const u = this.getUser(m);
+        if (u) totalTrophies += (u.trophies || 0);
+      });
+      return {
+        id: c.id,
+        name: c.name,
+        tag: c.tag,
+        description: c.description,
+        leader: c.leader,
+        memberCount: c.members.length,
+        totalTrophies
+      };
+    }).sort((a, b) => b.totalTrophies - a.totalTrophies);
+  }
 }
 
 module.exports = new Database();

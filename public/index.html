@@ -118,6 +118,7 @@
       <button class="btn-action-main btn-attack" onclick="toggleAttackModal()">⚔️ ATAQUE</button>
       <button class="btn-action-main btn-train" onclick="toggleArmyModal()">🏹 TROPAS</button>
       <button class="btn-action-main btn-upgrade" onclick="toggleBuildingsModal()">🏗️ OBRAS</button>
+      <button class="btn-action-main btn-clan" onclick="toggleClanModal()">🛡️ CLÃ</button>
       <button class="btn-action-main btn-shield" onclick="buyShieldModal()">🛡️ ESCUDO</button>
     </div>
 
@@ -222,6 +223,52 @@
           <p>Clique no botão abaixo para simular a aprovação instantânea pelo banco:</p>
           <button id="btn-simulate-pix" class="btn btn-gold btn-glow" onclick="simulatePixPayment()">SIMULAR PAGAMENTO PIX AGORA ⚡</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CLÃS E ALIANÇAS (GUILDAS) -->
+  <div id="clan-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-panel clan-modal-box">
+      <div class="modal-header">
+        <h2>🛡️ Clãs & Alianças de Guerra</h2>
+        <button class="btn-close" onclick="toggleClanModal()">✕</button>
+      </div>
+
+      <div class="auth-tabs clan-tabs">
+        <button id="tab-my-clan" class="tab-btn active" onclick="switchClanTab('my-clan')">Seu Clã</button>
+        <button id="tab-search-clan" class="tab-btn" onclick="switchClanTab('search-clan')">Procurar Clãs</button>
+        <button id="tab-create-clan" class="tab-btn" onclick="switchClanTab('create-clan')">Fundar Clã</button>
+      </div>
+
+      <!-- ABA: MEU CLÃ -->
+      <div id="clan-view-my" class="clan-tab-content">
+        <div id="my-clan-details"></div>
+      </div>
+
+      <!-- ABA: PROCURAR CLÃS -->
+      <div id="clan-view-search" class="clan-tab-content hidden">
+        <div id="clans-list" class="clans-list"></div>
+      </div>
+
+      <!-- ABA: CRIAR CLÃ -->
+      <div id="clan-view-create" class="clan-tab-content hidden">
+        <form onsubmit="handleCreateClanSubmit(event)">
+          <div class="input-group">
+            <label>Nome do Clã</label>
+            <input type="text" id="create-clan-name" required placeholder="Ex: Guardiões do Dragão, Templários..." autocomplete="off">
+          </div>
+          <div class="input-group">
+            <label>Tag do Clã (2 a 5 letras)</label>
+            <input type="text" id="create-clan-tag" required placeholder="Ex: GDD, VAL, SPART..." maxlength="5" autocomplete="off" style="text-transform:uppercase;">
+          </div>
+          <div class="input-group">
+            <label>Descrição / Regras da Aliança</label>
+            <input type="text" id="create-clan-desc" placeholder="Ex: Clã focado em batalhas e ajuda mútua!" autocomplete="off">
+          </div>
+          <div id="create-clan-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-gold btn-glow">FUNDAR CLÃ (🪙 500 Ouro)</button>
+        </form>
       </div>
     </div>
   </div>

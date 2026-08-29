@@ -305,6 +305,7 @@ body, html {
 
 .btn-train { background: linear-gradient(135deg, #2563eb, #1e40af); }
 .btn-upgrade { background: linear-gradient(135deg, #d97706, #854d0e); }
+.btn-clan { background: linear-gradient(135deg, #9333ea, #6b21a8); }
 .btn-shield { background: linear-gradient(135deg, #0284c7, #0369a1); }
 
 .hud-actions-menu {
