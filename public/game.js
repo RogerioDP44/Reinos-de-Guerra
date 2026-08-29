@@ -153,7 +153,24 @@ function resizeCanvas() {
   canvas.height = window.innerHeight;
 }
 
-// CONTROLE DE ARRASTAR A CÂMERA DO MAPA (MOUSE + TOUCH MOBILE)
+// CONTROLE DE ZOOM & CÂMERA DO MAPA (MOUSE + TOUCH MOBILE)
+let cameraZoom = 1.0;
+
+function resetCameraCenter() {
+  cameraOffset.x = 0;
+  cameraOffset.y = 0;
+  cameraZoom = 1.0;
+  playSound('hammer');
+}
+
+function zoomInCamera() {
+  cameraZoom = Math.min(1.8, cameraZoom + 0.15);
+}
+
+function zoomOutCamera() {
+  cameraZoom = Math.max(0.5, cameraZoom - 0.15);
+}
+
 function setupCameraDrag() {
   // Mouse (Desktop)
   canvas.addEventListener('mousedown', (e) => {
@@ -169,6 +186,16 @@ function setupCameraDrag() {
   });
 
   window.addEventListener('mouseup', () => { isDragging = false; });
+
+  // Roda do Mouse (Zoom In / Zoom Out)
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      zoomInCamera();
+    } else {
+      zoomOutCamera();
+    }
+  }, { passive: false });
 
   // Touch (Celulares & Tablets)
   canvas.addEventListener('touchstart', (e) => {
@@ -186,6 +213,76 @@ function setupCameraDrag() {
   }, { passive: true });
 
   window.addEventListener('touchend', () => { isDragging = false; });
+}
+
+// RENDERIZAÇÃO DO MINI MAPA TÁTICO
+function renderMinimap() {
+  const mCanvas = document.getElementById('minimapCanvas');
+  if (!mCanvas || !selfKingdom) return;
+  const mCtx = mCanvas.getContext('2d');
+
+  const mW = mCanvas.width;
+  const mH = mCanvas.height;
+
+  mCtx.fillStyle = '#0f3820';
+  mCtx.fillRect(0, 0, mW, mH);
+
+  mCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+  mCtx.strokeRect(0, 0, mW, mH);
+
+  const worldWidth = 1200;
+  const worldHeight = 900;
+  const startX = canvas.width / 2 - 200;
+  const startY = canvas.height / 2 - 150;
+
+  selfKingdom.buildings.forEach(b => {
+    const bx = (b.x * 130) + 150;
+    const by = (b.y * 110) + 100;
+    const mx = (bx / worldWidth) * mW;
+    const my = (by / worldHeight) * mH;
+
+    mCtx.fillStyle = b.id === 'townhall' ? '#fbbf24' : '#38bdf8';
+    mCtx.fillRect(mx - 3, my - 3, 6, 6);
+  });
+
+  resourceNodes.forEach(node => {
+    const mx = ((node.x - startX + 200) / worldWidth) * mW;
+    const my = ((node.y - startY + 150) / worldHeight) * mH;
+    mCtx.fillStyle = node.type === 'tree' ? '#22c55e' : '#94a3b8';
+    mCtx.fillRect(mx - 1.5, my - 1.5, 3, 3);
+  });
+
+  wildAnimals.forEach(a => {
+    const mx = ((a.x - startX + 200) / worldWidth) * mW;
+    const my = ((a.y - startY + 150) / worldHeight) * mH;
+    mCtx.fillStyle = '#ef4444';
+    mCtx.fillRect(mx - 1.5, my - 1.5, 3, 3);
+  });
+
+  const camMx = ((-cameraOffset.x + 200) / worldWidth) * mW;
+  const camMy = ((-cameraOffset.y + 150) / worldHeight) * mH;
+  mCtx.strokeStyle = '#ffffff';
+  mCtx.lineWidth = 1.5;
+  mCtx.strokeRect(camMx - 10, camMy - 8, 24, 16);
+}
+
+function handleMinimapClick(e) {
+  e.stopPropagation();
+  const mCanvas = document.getElementById('minimapCanvas');
+  if (!mCanvas || !selfKingdom) return;
+
+  const rect = mCanvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  const worldWidth = 1200;
+  const worldHeight = 900;
+
+  const targetX = (clickX / mCanvas.width) * worldWidth - 200;
+  const targetY = (clickY / mCanvas.height) * worldHeight - 150;
+
+  cameraOffset.x = -targetX;
+  cameraOffset.y = -targetY;
 }
 
 function toggleChatCard() {
@@ -1155,6 +1252,7 @@ function renderLoop() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.save();
+  ctx.scale(cameraZoom, cameraZoom);
   ctx.translate(cameraOffset.x, cameraOffset.y);
 
   // Terreno e Grade do Reino
@@ -1271,6 +1369,9 @@ function renderLoop() {
   ctx.font = 'bold 13px Outfit, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(cycle.phaseName, canvas.width - 82, 35);
+
+  // Renderizar o Mini Mapa Tático
+  renderMinimap();
 
   requestAnimationFrame(renderLoop);
 }

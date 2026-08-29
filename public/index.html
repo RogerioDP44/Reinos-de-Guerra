@@ -140,10 +140,21 @@
 
     <!-- MENU FLUTUANTE DE CONFIGURAÇÕES -->
     <div class="hud-actions-menu">
+      <button class="btn-icon-hud" onclick="resetCameraCenter()" title="Centralizar na Vila">🏠</button>
+      <button class="btn-icon-hud" onclick="zoomInCamera()" title="Aumentar Zoom (+)">🔍+</button>
+      <button class="btn-icon-hud" onclick="zoomOutCamera()" title="Diminuir Zoom (-)">🔍-</button>
       <button class="btn-icon-hud" onclick="toggleQuestsModal()" title="Missões & Passe">📜</button>
       <button class="btn-icon-hud" onclick="toggleRankingModal()" title="Ranking">🏆</button>
       <button class="btn-icon-hud" onclick="toggleShopModal()" title="Loja PIX">💎</button>
       <button class="btn-icon-hud" onclick="logoutUser()" title="Sair da Conta">🚪</button>
+    </div>
+
+    <!-- MINI MAPA DA VILA (CANTO DIREITO ACIMA DAS AÇÕES) -->
+    <div id="minimap-container" class="minimap-container glass-panel" onclick="handleMinimapClick(event)">
+      <div class="minimap-header">
+        <span>🗺️ MINI MAPA</span>
+      </div>
+      <canvas id="minimapCanvas" width="130" height="85"></canvas>
     </div>
 
     <!-- CHAT DA GUERRA (CANTO INFERIOR ESQUERDO) -->
