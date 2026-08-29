@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reinos de Guerra - Estratégia Imperial MMO</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- MODAL DE ENTRADA -->
+  <div id="auth-modal" class="modal-overlay">
+    <div class="auth-box glass-panel">
+      <div class="logo-area">
+        <span class="game-icon">🏰</span>
+        <h1>REINOS DE GUERRA</h1>
+        <p class="subtitle">Estratégia & Batalha de Impérios Online</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Entrar no Reino</button>
+        <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Fundar Novo Reino</button>
+      </div>
+
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <div class="input-group">
+          <label for="auth-username">Nome do Imperador / Reino</label>
+          <input type="text" id="auth-username" required placeholder="Ex: Artur, Valoria, Spartacus..." autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label for="auth-password">Chave de Acesso (Senha)</label>
+          <input type="password" id="auth-password" required placeholder="••••••••">
+        </div>
+        <div id="lgpd-checkbox-group" class="input-group checkbox-group hidden">
+          <label class="checkbox-label">
+            <input type="checkbox" id="auth-lgpd-check">
+            <span>Li e aceito os <a href="#" onclick="toggleLgpdModal(event)">Termos de Uso & Política de Privacidade (LGPD)</a></span>
+          </label>
+        </div>
+        <div id="auth-error" class="error-msg"></div>
+        <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-glow">ENTRAR NO IMPÉRIO ⚔️</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- CANVAS DA VILA DO JOGO -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- HUD SUPERIOR DE RECURSOS -->
+  <div id="game-hud" class="hud-layer hidden">
+
+    <!-- RECURSOS DO IMPÉRIO (TOPO DA TELA) -->
+    <div class="hud-card resource-bar glass-panel">
+      <div class="kingdom-title-box">
+        <span id="hud-kingdom-name" class="kingdom-name">Reino de Valoria</span>
+        <span id="hud-vip-badge" class="vip-badge hidden">VIP</span>
+        <span id="hud-shield-badge" class="shield-badge hidden">🛡️ PAZ</span>
+      </div>
+
+      <div class="resources-grid">
+        <div class="res-item">
+          <span class="res-icon">🪙</span>
+          <div>
+            <div class="res-label">Ouro</div>
+            <div id="hud-gold" class="res-val">500 / 5.000</div>
+          </div>
+        </div>
+
+        <div class="res-item">
+          <span class="res-icon">🪓</span>
+          <div>
+            <div class="res-label">Madeira</div>
+            <div id="hud-wood" class="res-val">500 / 5.000</div>
+          </div>
+        </div>
+
+        <div class="res-item">
+          <span class="res-icon">💎</span>
+          <div>
+            <div class="res-label">Gemas</div>
+            <div id="hud-gems" class="res-val">50</div>
+          </div>
+        </div>
+
+        <div class="res-item">
+          <span class="res-icon">🏆</span>
+          <div>
+            <div class="res-label">Troféus</div>
+            <div id="hud-trophies" class="res-val">100</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-gold btn-sm" onclick="toggleShopModal()">+ LOJA PIX 💎</button>
+    </div>
+
+    <!-- PAINEL PRINCIPAL DE AÇÕES (CANTO INFERIOR DIREITO) -->
+    <div class="hud-main-actions">
+      <button class="btn-action-main btn-attack" onclick="toggleAttackModal()">⚔️ ATAQUE DE REINOS</button>
+      <button class="btn-action-main btn-train" onclick="toggleArmyModal()">🏹 TREINAR TROPAS</button>
+      <button class="btn-action-main btn-upgrade" onclick="toggleBuildingsModal()">🏗️ EDIFÍCIOS & OBRAS</button>
+      <button class="btn-action-main btn-shield" onclick="buyShieldModal()">🛡️ ESCUDO (30 💎)</button>
+    </div>
+
+    <!-- MENU FLUTUANTE DE CONFIGURAÇÕES -->
+    <div class="hud-actions-menu">
+      <button class="btn-icon-hud" onclick="toggleRankingModal()" title="Ranking">🏆</button>
+      <button class="btn-icon-hud" onclick="toggleShopModal()" title="Loja PIX">💎</button>
+    </div>
+
+    <!-- CHAT DA GUERRA (CANTO INFERIOR ESQUERDO) -->
+    <div class="hud-card chat-card glass-panel">
+      <div id="chat-messages" class="chat-messages"></div>
+      <form onsubmit="handleSendChat(event)" class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Mensagem para o Império..." autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE EDIFÍCIOS E OBRAS -->
+  <div id="buildings-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-panel">
+      <div class="modal-header">
+        <h2>🏗️ Edifícios e Obras da Vila</h2>
+        <button class="btn-close" onclick="toggleBuildingsModal()">✕</button>
+      </div>
+      <div id="buildings-grid" class="buildings-grid"></div>
+    </div>
+  </div>
+
+  <!-- MODAL DE TREINAMENTO DE TROPAS -->
+  <div id="army-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-panel">
+      <div class="modal-header">
+        <h2>⚔️ Quartel de Tropas & Exército</h2>
+        <button class="btn-close" onclick="toggleArmyModal()">✕</button>
+      </div>
+      <div class="army-summary">
+        <h3>Seu Exército Atual:</h3>
+        <div id="army-counts-row" class="army-counts-row"></div>
+      </div>
+      <h3>Treinar Novas Tropas:</h3>
+      <div id="troops-grid" class="troops-grid"></div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ATAQUE E SAQUE -->
+  <div id="attack-modal" class="modal-overlay hidden">
+    <div class="modal-box attack-box glass-panel">
+      <div class="modal-header">
+        <h2>⚔️ Mapa de Reinos Inimigos (Saqueie Ouro e Madeira)</h2>
+        <button class="btn-close" onclick="toggleAttackModal()">✕</button>
+      </div>
+      <p style="color:var(--text-muted); font-size:14px; margin-bottom:16px;">
+        Escolha um Reino inimigo para marchar suas tropas e saquear recursos!
+      </p>
+      <div id="enemies-list" class="enemies-list"></div>
+    </div>
+  </div>
+
+  <!-- MODAL DE SIMULAÇÃO DE BATALHA ANIMAÇÃO -->
+  <div id="battle-modal" class="modal-overlay hidden">
+    <div class="modal-box battle-box glass-panel text-center">
+      <h2 id="battle-title" style="color:#fbbf24; font-family:'Cinzel', serif; font-size:24px;">⚔️ BATALHA EM ANDAMENTO...</h2>
+      <div class="battle-animation-area">
+        <div id="battle-attacker-side" class="battle-side">⚔️ Suas Tropas Marchei!</div>
+        <div class="battle-vs">VS</div>
+        <div id="battle-defender-side" class="battle-side">🏰 Defesas Inimigas</div>
+      </div>
+      <div class="progress-bar-bg"><div id="battle-progress-bar" class="progress-bar-fill"></div></div>
+      <div id="battle-result-text" class="battle-result-text"></div>
+      <button id="btn-close-battle" class="btn btn-gold btn-glow hidden" onclick="closeBattleModal()">CONTINUAR 🏆</button>
+    </div>
+  </div>
+
+  <!-- MODAL DA LOJA PIX -->
+  <div id="shop-modal" class="modal-overlay hidden">
+    <div class="modal-box shop-box glass-panel">
+      <div class="modal-header">
+        <h2>💎 Tesouro Imperial & Gemas (PIX Automático)</h2>
+        <button class="btn-close" onclick="toggleShopModal()">✕</button>
+      </div>
+
+      <div id="shop-packages-list" class="shop-grid"></div>
+
+      <!-- AREA DO QR CODE PIX -->
+      <div id="pix-payment-area" class="pix-area hidden glass-panel">
+        <h3>QR Code PIX Gerado com Sucesso!</h3>
+        <p class="pix-instructions">Abra o app do seu banco e pague com o <b>PIX Copia e Cola</b>:</p>
+        
+        <div class="pix-code-box">
+          <textarea id="pix-copy-paste" readonly></textarea>
+          <button class="btn btn-secondary btn-sm" onclick="copyPixCode()">Copiar Código PIX 📋</button>
+        </div>
+
+        <div id="pix-sandbox-notice" class="sandbox-notice">
+          <p>🧪 <b>Modo de Teste / Desenvolvimento</b></p>
+          <p>Clique no botão abaixo para simular a aprovação instantânea pelo banco:</p>
+          <button id="btn-simulate-pix" class="btn btn-gold btn-glow" onclick="simulatePixPayment()">SIMULAR PAGAMENTO PIX AGORA ⚡</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE RANKING -->
+  <div id="ranking-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-panel">
+      <div class="modal-header">
+        <h2>🏆 Ranking dos Maiores Impérios</h2>
+        <button class="btn-close" onclick="toggleRankingModal()">✕</button>
+      </div>
+      <div id="ranking-list" class="ranking-list"></div>
+    </div>
+  </div>
+
+  <!-- MODAL DE TERMOS DE USO & LGPD -->
+  <div id="lgpd-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-panel lgpd-modal-box">
+      <div class="modal-header">
+        <h2>📜 Termos de Uso & Política de Privacidade (LGPD)</h2>
+        <button class="btn-close" onclick="toggleLgpdModal()">✕</button>
+      </div>
+      <div class="lgpd-modal-body">
+        <h3>1. Proteção de Dados (Lei nº 13.709/2018 - LGPD)</h3>
+        <p>Garantimos a privacidade e segurança dos seus dados. Coletamos apenas as informações estritamente necessárias para o funcionamento do jogo (nome de usuário, hash criptografado da senha, progresso do jogo e IP para controle de acesso).</p>
+
+        <h3>2. Criptografia & Armazenamento Seguro</h3>
+        <p>Sua senha é protegida com criptografia BCrypt de alta segurança. Nenhuma informação pessoal sensível (como CPF ou cartão de crédito) é armazenada nos nossos servidores.</p>
+
+        <h3>3. Uso de Cookies & Sessão</h3>
+        <p>Utilizamos cookies de sessão e armazenamento local (localStorage) exclusivamente para manter seu login ativo de forma segura enquanto você joga.</p>
+
+        <h3>4. Direitos do Titular dos Dados</h3>
+        <p>Você tem o direito de solicitar a exclusão definitiva da sua conta e de todos os dados associados a qualquer momento junto à administração do servidor.</p>
+
+        <h3>5. Conduta e Fair Play</h3>
+        <p>É proibido o uso de hacks, bots ou exploração de falhas. Contas que violarem a segurança do servidor serão banidas permanentemente.</p>
+      </div>
+      <div class="text-center" style="margin-top:16px;">
+        <button class="btn btn-gold" onclick="toggleLgpdModal()">ENTENDI E CONCORDO 👍</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANNER FLUTUANTE DE COOKIES (LGPD) -->
+  <div id="cookie-banner" class="cookie-banner hidden glass-panel">
+    <div class="cookie-content">
+      <span class="cookie-icon">🍪</span>
+      <div class="cookie-text">
+        <strong>Aviso de Cookies e Privacidade:</strong>
+        <p>Utilizamos cookies de sessão e localStorage para manter sua conta conectada e garantir a segurança da sua partida, em conformidade com a <b>LGPD (Lei nº 13.709/2018)</b>. <a href="#" onclick="toggleLgpdModal(event)">Saiba mais</a></p>
+      </div>
+    </div>
+    <button class="btn btn-gold btn-sm" onclick="acceptCookies()">ACEITAR COOKIES 🍪</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

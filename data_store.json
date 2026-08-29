@@ -1,0 +1,615 @@
+{
+  "users": {
+    "mago": {
+      "username": "mago",
+      "passwordHash": "$2a$10$leAzcKC7qu97xc9d8nDjG.hnFbzT8wbR9iej0.oug16M.BhrDaFjK",
+      "level": 6,
+      "xp": 583,
+      "maxXp": 757,
+      "hp": 52,
+      "maxHp": 200,
+      "mp": 50,
+      "maxMp": 50,
+      "attack": 40,
+      "defense": 5,
+      "speed": 4,
+      "x": 506.4264068711932,
+      "y": 1358.4264068711932,
+      "coins": 1345,
+      "gems": 50,
+      "isVip": false,
+      "vipUntil": null,
+      "role": "admin",
+      "inventory": [
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "count": 5,
+          "icon": "🧪",
+          "value": 10,
+          "healHp": 50
+        },
+        {
+          "id": "sword_wood",
+          "name": "Espada de Madeira",
+          "type": "weapon",
+          "attackBonus": 5,
+          "icon": "🗡️",
+          "equipped": true
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        },
+        {
+          "id": "potion_hp",
+          "name": "Poção de Vida",
+          "type": "consumable",
+          "healHp": 50,
+          "icon": "🧪"
+        }
+      ],
+      "equipment": {
+        "weapon": {
+          "id": "sword_wood",
+          "name": "Espada de Madeira",
+          "attackBonus": 5,
+          "icon": "🗡️"
+        },
+        "armor": null
+      },
+      "createdAt": "2026-08-28T23:15:55.889Z",
+      "buildings": [
+        {
+          "id": "townhall",
+          "name": "Centro da Vila",
+          "level": 1,
+          "icon": "🏰",
+          "x": 2,
+          "y": 2,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "goldmine",
+          "name": "Mina de Ouro",
+          "level": 1,
+          "icon": "⛏️",
+          "x": 1,
+          "y": 1,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "sawmill",
+          "name": "Serraria",
+          "level": 1,
+          "icon": "🪓",
+          "x": 3,
+          "y": 1,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "barracks",
+          "name": "Quartel de Tropas",
+          "level": 1,
+          "icon": "⚔️",
+          "x": 1,
+          "y": 3,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "tower",
+          "name": "Torre de Defesa",
+          "level": 1,
+          "icon": "🏹",
+          "x": 3,
+          "y": 3,
+          "isUpgrading": false,
+          "finishTime": null
+        }
+      ],
+      "army": {
+        "warrior": 10,
+        "archer": 5,
+        "wizard": 0,
+        "dragon": 0
+      },
+      "battleLogs": [
+        {
+          "attacker": "rogerio",
+          "isVictory": false,
+          "lootedGold": 175,
+          "lootedWood": 175,
+          "date": "2026-08-29T17:02:02.406Z"
+        },
+        {
+          "attacker": "imperador",
+          "isVictory": false,
+          "lootedGold": null,
+          "lootedWood": null,
+          "date": "2026-08-28T23:45:23.193Z"
+        }
+      ],
+      "maxGold": 5000,
+      "maxWood": 5000,
+      "gold": 325,
+      "wood": 325,
+      "trophies": 80,
+      "shieldUntil": "2026-08-30T01:02:02.406Z",
+      "kingdomName": "Império de Mago"
+    },
+    "mario_pro": {
+      "username": "mario_pro",
+      "passwordHash": "$2a$10$C69ebuGbk4HPOaQYbrFIcuDMH3FbEcTPYa5o7OjwyRQnYdJPYG7V.",
+      "coins": 181,
+      "gems": 50,
+      "stars": 2,
+      "bestTime": 27.71,
+      "activeSkin": "mario_red",
+      "unlockedSkins": [
+        "mario_red"
+      ],
+      "isVip": false,
+      "vipUntil": null,
+      "role": "player",
+      "createdAt": "2026-08-28T23:31:57.797Z",
+      "kingdomName": "Império de Mario_pro",
+      "gold": 212,
+      "wood": 212,
+      "maxGold": 5000,
+      "maxWood": 5000,
+      "trophies": 60,
+      "buildings": [
+        {
+          "id": "townhall",
+          "name": "Centro da Vila",
+          "level": 1,
+          "icon": "🏰",
+          "x": 2,
+          "y": 2,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "goldmine",
+          "name": "Mina de Ouro",
+          "level": 1,
+          "icon": "⛏️",
+          "x": 1,
+          "y": 1,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "sawmill",
+          "name": "Serraria",
+          "level": 1,
+          "icon": "🪓",
+          "x": 3,
+          "y": 1,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "barracks",
+          "name": "Quartel de Tropas",
+          "level": 1,
+          "icon": "⚔️",
+          "x": 1,
+          "y": 3,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "tower",
+          "name": "Torre de Defesa",
+          "level": 1,
+          "icon": "🏹",
+          "x": 3,
+          "y": 3,
+          "isUpgrading": false,
+          "finishTime": null
+        }
+      ],
+      "army": {
+        "warrior": 10,
+        "archer": 5,
+        "wizard": 0,
+        "dragon": 0
+      },
+      "battleLogs": [
+        {
+          "attacker": "rogerio",
+          "isVictory": false,
+          "lootedGold": 113,
+          "lootedWood": 113,
+          "date": "2026-08-29T17:02:12.195Z"
+        },
+        {
+          "attacker": "imperador",
+          "isVictory": false,
+          "lootedGold": 175,
+          "lootedWood": 175,
+          "date": "2026-08-29T00:09:30.998Z"
+        }
+      ],
+      "shieldUntil": "2026-08-30T01:02:12.195Z"
+    },
+    "imperador": {
+      "username": "imperador",
+      "kingdomName": "Reino de Imperador",
+      "passwordHash": "$2a$10$y3edcvDod3KfvaId1jzpo.uNmPXkrFHB3fKuiaEFK9XCyXusfuIJK",
+      "gold": 9750,
+      "maxGold": 15000,
+      "wood": 9750,
+      "maxWood": 15000,
+      "gems": 40,
+      "trophies": 140,
+      "isVip": true,
+      "shieldUntil": "2026-08-30T01:05:28.010Z",
+      "role": "player",
+      "buildings": [
+        {
+          "id": "townhall",
+          "name": "Centro da Vila",
+          "level": 3,
+          "icon": "🏰",
+          "x": 2,
+          "y": 2,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "goldmine",
+          "name": "Mina de Ouro",
+          "level": 5,
+          "icon": "⛏️",
+          "x": 1,
+          "y": 1,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "sawmill",
+          "name": "Serraria",
+          "level": 2,
+          "icon": "🪓",
+          "x": 3,
+          "y": 1,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "barracks",
+          "name": "Quartel de Tropas",
+          "level": 4,
+          "icon": "⚔️",
+          "x": 1,
+          "y": 3,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "tower",
+          "name": "Torre Arqueira",
+          "level": 4,
+          "icon": "🏹",
+          "x": 3,
+          "y": 3,
+          "isUpgrading": false,
+          "finishTime": null
+        }
+      ],
+      "army": {
+        "warrior": 17,
+        "archer": 16,
+        "wizard": 6,
+        "dragon": 4
+      },
+      "lastResourceUpdate": 1788023128009,
+      "createdAt": "2026-08-28T23:39:47.206Z",
+      "battleLogs": [
+        {
+          "attacker": "rogerio",
+          "isVictory": false,
+          "lootedGold": 5250,
+          "lootedWood": 5250,
+          "date": "2026-08-29T17:05:28.010Z"
+        },
+        {
+          "attacker": "rogerio",
+          "isVictory": true,
+          "lootedGold": 0,
+          "lootedWood": 0,
+          "date": "2026-08-29T17:02:24.261Z"
+        },
+        {
+          "attacker": "rogerio",
+          "isVictory": true,
+          "lootedGold": 0,
+          "lootedWood": 0,
+          "date": "2026-08-29T17:02:16.549Z"
+        }
+      ],
+      "vipUntil": "2026-09-28T00:06:18.545Z"
+    },
+    "rogerio": {
+      "username": "rogerio",
+      "kingdomName": "Império de Rogerio",
+      "passwordHash": "$2a$10$.v/Mbs5OXwPQ2/jBPM9t5uJU1pLPyuxx7ThWhee.lfKIkeF590Jtq",
+      "gold": 8250,
+      "maxGold": 15000,
+      "wood": 8758,
+      "maxWood": 15000,
+      "gems": 170,
+      "trophies": 160,
+      "isVip": false,
+      "shieldUntil": "2026-08-30T05:00:53.412Z",
+      "clan": null,
+      "role": "player",
+      "buildings": [
+        {
+          "id": "townhall",
+          "name": "Centro da Vila",
+          "level": 3,
+          "icon": "🏰",
+          "x": 2,
+          "y": 2,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "goldmine",
+          "name": "Mina de Ouro",
+          "level": 2,
+          "icon": "⛏️",
+          "x": 1,
+          "y": 1,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "sawmill",
+          "name": "Serraria",
+          "level": 2,
+          "icon": "🪓",
+          "x": 3,
+          "y": 1,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "barracks",
+          "name": "Quartel de Tropas",
+          "level": 2,
+          "icon": "⚔️",
+          "x": 1,
+          "y": 3,
+          "isUpgrading": false,
+          "finishTime": null
+        },
+        {
+          "id": "tower",
+          "name": "Torre de Defesa",
+          "level": 2,
+          "icon": "🏹",
+          "x": 3,
+          "y": 3,
+          "isUpgrading": false,
+          "finishTime": null
+        }
+      ],
+      "army": {
+        "warrior": 13,
+        "archer": 5,
+        "wizard": 2,
+        "dragon": 3
+      },
+      "battleLogs": [],
+      "lastResourceUpdate": 1788024041473,
+      "createdAt": "2026-08-29T17:00:24.402Z"
+    }
+  },
+  "payments": {
+    "PIX_KINGDOM_1787960752125_737": {
+      "id": "PIX_KINGDOM_1787960752125_737",
+      "username": "imperador",
+      "amount": 5,
+      "gems": 150,
+      "status": "pending",
+      "createdAt": "2026-08-28T23:45:52.125Z"
+    },
+    "PIX_KINGDOM_1787961507142_414": {
+      "id": "PIX_KINGDOM_1787961507142_414",
+      "username": "imperador",
+      "amount": 14.9,
+      "gems": 300,
+      "status": "pending",
+      "createdAt": "2026-08-28T23:58:27.142Z"
+    },
+    "PIX_KINGDOM_1787961946594_11": {
+      "id": "PIX_KINGDOM_1787961946594_11",
+      "username": "imperador",
+      "amount": 14.9,
+      "gems": 300,
+      "status": "approved",
+      "createdAt": "2026-08-29T00:05:46.594Z"
+    },
+    "PIX_KINGDOM_1788022866320_189": {
+      "id": "PIX_KINGDOM_1788022866320_189",
+      "username": "rogerio",
+      "amount": 5,
+      "gems": 150,
+      "status": "approved",
+      "createdAt": "2026-08-29T17:01:06.320Z"
+    }
+  }
+}
