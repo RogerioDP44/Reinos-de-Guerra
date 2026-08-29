@@ -1028,25 +1028,134 @@ function drawBuildingTorch(bx, by) {
   ctx.fill();
 }
 
-// SISTEMA DE RECURSOS NATURAIS (ÁRVORES 🌲 & ROCHAS 🪨) & ANIMAIS SELVAGENS 🦌
+// SISTEMA DE HERÓI IMPERADOR AVATAR & COMBATE/COLETA EM TEMPO REAL
 // =========================================================================
+let hero = null;
 let wildAnimals = [];
 let resourceNodes = [];
+
+function initHero(startX, startY) {
+  if (!hero && selfKingdom) {
+    hero = {
+      name: selfKingdom.kingdomName || selfKingdom.username,
+      icon: '👑',
+      weapon: '🗡️',
+      x: startX + 200,
+      y: startY + 200,
+      targetX: startX + 200,
+      targetY: startY + 200,
+      speed: 3.0,
+      state: 'idle',
+      targetEntity: null,
+      strikeTimer: 0
+    };
+  }
+}
+
+function updateAndRenderHero(startX, startY) {
+  initHero(startX, startY);
+  if (!hero) return;
+
+  // Lógica de Movimentação do Herói até o Ponto Alvo ou Recurso
+  const dx = hero.targetX - hero.x;
+  const dy = hero.targetY - hero.y;
+  const dist = Math.hypot(dx, dy);
+
+  if (dist > 12) {
+    hero.x += (dx / dist) * hero.speed;
+    hero.y += (dy / dist) * hero.speed;
+    hero.state = 'walking';
+  } else if (hero.targetEntity) {
+    hero.state = 'action';
+    performHeroAction();
+  } else {
+    hero.state = 'idle';
+  }
+
+  // Animação de Passos e Golpes
+  const bounce = hero.state === 'walking' ? Math.abs(Math.sin(frameCount * 0.25)) * 6 : 0;
+  const strikeOffset = hero.state === 'action' ? Math.sin(frameCount * 0.4) * 14 : 0;
+
+  ctx.save();
+
+  // Renderizar Ícone do Herói
+  ctx.font = '36px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(hero.icon, hero.x + strikeOffset, hero.y - bounce);
+
+  // Renderizar Arma Atual ao Golpear (Espada 🗡️ / Machado 🪓 / Picareta ⛏️)
+  if (hero.state === 'action') {
+    ctx.font = '26px sans-serif';
+    ctx.fillText(hero.weapon, hero.x + 24 + strikeOffset, hero.y - 12);
+  }
+
+  // Sombra do Herói
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(hero.x, hero.y, 14, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Nome do Imperador / Herói
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = 'bold 11px Outfit, sans-serif';
+  ctx.fillText(`👑 ${hero.name}`, hero.x, hero.y - 44 - bounce);
+
+  ctx.restore();
+}
+
+function performHeroAction() {
+  if (!hero || !hero.targetEntity) return;
+
+  const target = hero.targetEntity;
+  hero.strikeTimer++;
+
+  // A cada 20 frames (~0.35s), o Herói desfere um golpe com som e efeito visual!
+  if (hero.strikeTimer % 20 === 0) {
+    playSound('hammer');
+
+    const strikeText = target.kind === 'tree' ? '🪓 *BAQUE!*' : target.kind === 'rock' ? '⛏️ *CLANG!*' : '⚔️ *GOLPE!*';
+    floatingEffects.push({
+      text: strikeText,
+      x: target.x + (Math.random() * 12 - 6),
+      y: target.y - 18,
+      color: target.kind === 'animal' ? '#ef4444' : '#f59e0b',
+      life: 25
+    });
+
+    target.hp -= 1;
+
+    // Se o recurso ou animal foi destruído/abatido:
+    if (target.hp <= 0) {
+      if (target.kind === 'animal') {
+        const idx = wildAnimals.findIndex(a => a.id === target.id);
+        if (idx !== -1) huntWildAnimal(target, idx);
+      } else if (target.kind === 'tree' || target.kind === 'rock') {
+        const idx = resourceNodes.findIndex(n => n.id === target.id);
+        if (idx !== -1) gatherNode(target, idx);
+      }
+      hero.targetEntity = null;
+      hero.state = 'idle';
+    }
+  }
+}
 
 function spawnResourceNodes(startX, startY) {
   if (resourceNodes.length < 6 && selfKingdom) {
     const types = [
-      { id: 'tree', icon: '🌲', name: 'Árvore de Madeira', badge: '🪓 CORTAR' },
-      { id: 'rock', icon: '🪨', name: 'Rocha de Ouro & Minério', badge: '⛏️ MINERAR' }
+      { id: 'tree', icon: '🌲', name: 'Árvore de Madeira', badge: '🪓 CORTAR', maxHp: 3 },
+      { id: 'rock', icon: '🪨', name: 'Rocha de Minério', badge: '⛏️ MINERAR', maxHp: 4 }
     ];
 
     const typeObj = types[Math.floor(Math.random() * types.length)];
     resourceNodes.push({
       id: 'node_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      kind: typeObj.id,
       type: typeObj.id,
       icon: typeObj.icon,
       name: typeObj.name,
       badge: typeObj.badge,
+      hp: typeObj.maxHp,
+      maxHp: typeObj.maxHp,
       x: startX + (Math.random() * 700 - 150),
       y: startY + (Math.random() * 550 - 100)
     });
@@ -1066,23 +1175,35 @@ function updateAndRenderResourceNodes(startX, startY) {
     ctx.fillStyle = '#34d399';
     ctx.font = '900 10px Outfit, sans-serif';
     ctx.fillText(node.badge, node.x, node.y - 38);
+
+    // Barra de HP/Durabilidade do Recurso se estiver sob ataque/corte
+    if (node.hp < node.maxHp) {
+      const pct = Math.max(0, node.hp / node.maxHp);
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.fillRect(node.x - 20, node.y - 28, 40, 6);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(node.x - 20, node.y - 28, 40 * pct, 6);
+    }
   });
 }
 
 function spawnWildAnimals(startX, startY) {
   if (wildAnimals.length < 5 && selfKingdom) {
     const types = [
-      { id: 'deer', icon: '🦌', name: 'Cervo Selvagem' },
-      { id: 'boar', icon: '🐗', name: 'Javali das Montanhas' },
-      { id: 'wolf', icon: '🐺', name: 'Lobo Feroz' }
+      { id: 'deer', icon: '🦌', name: 'Cervo Selvagem', maxHp: 3 },
+      { id: 'boar', icon: '🐗', name: 'Javali das Montanhas', maxHp: 4 },
+      { id: 'wolf', icon: '🐺', name: 'Lobo Feroz', maxHp: 4 }
     ];
 
     const typeObj = types[Math.floor(Math.random() * types.length)];
     const animal = {
       id: 'animal_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      kind: 'animal',
       type: typeObj.id,
       icon: typeObj.icon,
       name: typeObj.name,
+      hp: typeObj.maxHp,
+      maxHp: typeObj.maxHp,
       x: startX + (Math.random() * 600 - 100),
       y: startY + (Math.random() * 500 - 100),
       targetX: startX + (Math.random() * 600 - 100),
@@ -1100,16 +1221,19 @@ function updateAndRenderWildAnimals(startX, startY) {
   }
 
   wildAnimals.forEach(a => {
-    const dx = a.targetX - a.x;
-    const dy = a.targetY - a.y;
-    const dist = Math.hypot(dx, dy);
+    // Se não estiver sob ataque, anda normalmente pelo mapa
+    if (!hero || hero.targetEntity !== a) {
+      const dx = a.targetX - a.x;
+      const dy = a.targetY - a.y;
+      const dist = Math.hypot(dx, dy);
 
-    if (dist < 10) {
-      a.targetX = startX + (Math.random() * 600 - 100);
-      a.targetY = startY + (Math.random() * 500 - 100);
-    } else {
-      a.x += (dx / dist) * a.speed;
-      a.y += (dy / dist) * a.speed;
+      if (dist < 10) {
+        a.targetX = startX + (Math.random() * 600 - 100);
+        a.targetY = startY + (Math.random() * 500 - 100);
+      } else {
+        a.x += (dx / dist) * a.speed;
+        a.y += (dy / dist) * a.speed;
+      }
     }
 
     const bounce = Math.abs(Math.sin((frameCount + a.stepOffset) * 0.12)) * 5;
@@ -1126,6 +1250,63 @@ function updateAndRenderWildAnimals(startX, startY) {
     ctx.fillStyle = '#fbbf24';
     ctx.font = '900 10px Outfit, sans-serif';
     ctx.fillText('🎯 CAÇAR!', a.x, a.y - bounce - 22);
+
+    // Barra de Vida do Animal durante o Combate
+    if (a.hp < a.maxHp) {
+      const pct = Math.max(0, a.hp / a.maxHp);
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.fillRect(a.x - 20, a.y - bounce - 14, 40, 6);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(a.x - 20, a.y - bounce - 14, 40 * pct, 6);
+    }
+  });
+}
+
+function setupCanvasHuntingClick() {
+  canvas.addEventListener('click', (e) => {
+    if (!selfKingdom) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = ((e.clientX - rect.left) / cameraZoom) - cameraOffset.x;
+    const clickY = ((e.clientY - rect.top) / cameraZoom) - cameraOffset.y;
+
+    // 1. Clique em Recursos Naturais (Árvores 🌲 / Rochas 🪨)
+    for (let i = resourceNodes.length - 1; i >= 0; i--) {
+      const node = resourceNodes[i];
+      const dist = Math.hypot(clickX - node.x, clickY - node.y);
+      if (dist < 40) {
+        if (hero) {
+          hero.weapon = node.type === 'tree' ? '🪓' : '⛏️';
+          hero.targetEntity = node;
+          hero.targetX = node.x;
+          hero.targetY = node.y;
+          hero.strikeTimer = 0;
+        }
+        return;
+      }
+    }
+
+    // 2. Clique em Animais Selvagens (Cervos 🦌 / Javalis 🐗 / Lobos 🐺)
+    for (let i = wildAnimals.length - 1; i >= 0; i--) {
+      const a = wildAnimals[i];
+      const dist = Math.hypot(clickX - a.x, clickY - a.y);
+      if (dist < 38) {
+        if (hero) {
+          hero.weapon = '🗡️';
+          hero.targetEntity = a;
+          hero.targetX = a.x;
+          hero.targetY = a.y;
+          hero.strikeTimer = 0;
+        }
+        return;
+      }
+    }
+
+    // 3. Clique em Gramado Vazio: Move o Herói para onde o jogador clicou no terreno
+    if (hero) {
+      hero.targetEntity = null;
+      hero.targetX = clickX;
+      hero.targetY = clickY;
+    }
   });
 }
 
@@ -1329,6 +1510,9 @@ function renderLoop() {
 
     // Aldeões Caminhando pela Vila
     updateAndRenderVillagers(startX, startY);
+
+    // Personagem Herói Imperador Avatar
+    updateAndRenderHero(startX, startY);
 
     // Fontes de Recursos Naturais (Árvores 🌲, Rochas de Ouro 🪨)
     updateAndRenderResourceNodes(startX, startY);
