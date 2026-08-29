@@ -269,7 +269,7 @@ setInterval(() => {
   });
 }, 1000);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3005;
 server.listen(PORT, () => {
   console.log(`===================================================`);
   console.log(` 🏰 REINOS DE GUERRA MULTIPLAYER ON PORT ${PORT} 🏰`);

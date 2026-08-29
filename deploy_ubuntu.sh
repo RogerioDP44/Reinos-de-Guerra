@@ -26,13 +26,13 @@ sudo npm install -g pm2
 echo "📦 Instalando dependências do projeto..."
 npm install
 
-# 5. Liberar Porta 3000 no Firewall UFW (se o UFW estiver ativo)
-sudo ufw allow 3000/tcp
+# 5. Liberar Porta 3005 no Firewall UFW (se o UFW estiver ativo)
+sudo ufw allow 3005/tcp
 
 # 6. Iniciar o Jogo com PM2 (Roda 24/7 em segundo plano)
 echo "⚡ Iniciando o servidor do jogo..."
 pm2 stop mmorpg-game 2>/dev/null || true
-pm2 start server.js --name "mmorpg-game"
+PORT=3005 pm2 start server.js --name "mmorpg-game"
 
 # 7. Configurar PM2 para inicializar junto com o Ubuntu (Auto-boot)
 pm2 save
@@ -42,7 +42,7 @@ echo ""
 echo "=================================================================="
 echo " 🎉 SERVIDOR DE JOGO INSTALADO E RODANDO COM SUCESSO! 🎉"
 echo "=================================================================="
-echo " 🌐 Seu jogo está online na porta 3000."
-echo " 📌 Acesse pelo navegador: http://SEU_IP_DO_UBUNTU:3000"
+echo " 🌐 Seu jogo está online na porta 3005."
+echo " 📌 Acesse pelo navegador: http://SEU_IP_DO_UBUNTU:3005"
 echo " 📊 Para ver os logs em tempo real, digite no terminal: pm2 logs"
 echo "=================================================================="
