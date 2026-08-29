@@ -150,6 +150,16 @@ app.post('/api/kingdom/hunt', (req, res) => {
   }
 });
 
+app.post('/api/kingdom/gather', (req, res) => {
+  try {
+    const { username, nodeType } = req.body;
+    const result = db.gatherResourceNode(username, nodeType);
+    res.json({ success: true, rewardText: result.rewardText, user: sanitizeUser(result.user) });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // --- ROTAS DE CLÃS & ALIANÇAS (GUILDAS) ---
 app.post('/api/clan/create', (req, res) => {
   try {

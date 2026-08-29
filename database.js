@@ -510,6 +510,32 @@ class Database {
     return { user, rewardText, rewards };
   }
 
+  gatherResourceNode(username, nodeType) {
+    const cleanUser = username.toLowerCase();
+    const user = this.getUser(cleanUser);
+    if (!user) throw new Error('Usuário não encontrado.');
+
+    let rewardText = '';
+    if (nodeType === 'tree') {
+      const woodEarned = 25 + Math.floor(Math.random() * 15);
+      const goldEarned = 15 + Math.floor(Math.random() * 15);
+      user.wood = Math.min(user.maxWood, user.wood + woodEarned);
+      user.gold = Math.min(user.maxGold, user.gold + goldEarned);
+      rewardText = `+${woodEarned} 🪓 Madeira | +${goldEarned} 🪙 Ouro`;
+    } else if (nodeType === 'rock') {
+      const goldEarned = 35 + Math.floor(Math.random() * 20);
+      const leatherEarned = 5 + Math.floor(Math.random() * 5);
+      user.gold = Math.min(user.maxGold, user.gold + goldEarned);
+      user.leather = (user.leather || 0) + leatherEarned;
+      rewardText = `+${goldEarned} 🪙 Ouro | +${leatherEarned} 📜 Minério`;
+    } else {
+      throw new Error('Recurso inválido.');
+    }
+
+    this.save();
+    return { user, rewardText };
+  }
+
   // --- MISSÕES DIÁRIAS & PASSE DE BATALHA ---
   claimQuest(username, questId) {
     const cleanUser = username.toLowerCase();

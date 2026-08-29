@@ -895,9 +895,46 @@ function drawBuildingTorch(bx, by) {
   ctx.fill();
 }
 
-// SISTEMA DE ANIMAIS SELVAGENS & CAÇA NO MAPA 2D
+// SISTEMA DE RECURSOS NATURAIS (ÁRVORES 🌲 & ROCHAS 🪨) & ANIMAIS SELVAGENS 🦌
 // =========================================================================
 let wildAnimals = [];
+let resourceNodes = [];
+
+function spawnResourceNodes(startX, startY) {
+  if (resourceNodes.length < 6 && selfKingdom) {
+    const types = [
+      { id: 'tree', icon: '🌲', name: 'Árvore de Madeira', badge: '🪓 CORTAR' },
+      { id: 'rock', icon: '🪨', name: 'Rocha de Ouro & Minério', badge: '⛏️ MINERAR' }
+    ];
+
+    const typeObj = types[Math.floor(Math.random() * types.length)];
+    resourceNodes.push({
+      id: 'node_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      type: typeObj.id,
+      icon: typeObj.icon,
+      name: typeObj.name,
+      badge: typeObj.badge,
+      x: startX + (Math.random() * 700 - 150),
+      y: startY + (Math.random() * 550 - 100)
+    });
+  }
+}
+
+function updateAndRenderResourceNodes(startX, startY) {
+  if (frameCount % 200 === 0) {
+    spawnResourceNodes(startX, startY);
+  }
+
+  resourceNodes.forEach(node => {
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(node.icon, node.x, node.y);
+
+    ctx.fillStyle = '#34d399';
+    ctx.font = '900 10px Outfit, sans-serif';
+    ctx.fillText(node.badge, node.x, node.y - 38);
+  });
+}
 
 function spawnWildAnimals(startX, startY) {
   if (wildAnimals.length < 5 && selfKingdom) {
@@ -944,18 +981,15 @@ function updateAndRenderWildAnimals(startX, startY) {
 
     const bounce = Math.abs(Math.sin((frameCount + a.stepOffset) * 0.12)) * 5;
 
-    // Ícone do Animal Selvagem
     ctx.font = '32px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(a.icon, a.x, a.y - bounce);
 
-    // Sombra do Animal no Chão
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
     ctx.ellipse(a.x, a.y, 12, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Selo de Clique para Caça
     ctx.fillStyle = '#fbbf24';
     ctx.font = '900 10px Outfit, sans-serif';
     ctx.fillText('🎯 CAÇAR!', a.x, a.y - bounce - 22);
@@ -969,20 +1003,80 @@ function setupCanvasHuntingClick() {
     const clickX = e.clientX - rect.left - cameraOffset.x;
     const clickY = e.clientY - rect.top - cameraOffset.y;
 
+    // 1. Clique em Recursos Naturais (Árvores 🌲 / Rochas 🪨)
+    for (let i = resourceNodes.length - 1; i >= 0; i--) {
+      const node = resourceNodes[i];
+      const dist = Math.hypot(clickX - node.x, clickY - node.y);
+      if (dist < 40) {
+        gatherNode(node, i);
+        return;
+      }
+    }
+
+    // 2. Clique em Animais Selvagens (Cervos 🦌 / Javalis 🐗 / Lobos 🐺)
     for (let i = wildAnimals.length - 1; i >= 0; i--) {
       const a = wildAnimals[i];
       const dist = Math.hypot(clickX - a.x, clickY - a.y);
       if (dist < 38) {
         huntWildAnimal(a, i);
-        break;
+        return;
       }
     }
   });
 }
 
+async function gatherNode(node, index) {
+  if (!selfKingdom) return;
+  playSound('hammer');
+
+  // Envia trabalhador mais próximo correndo até a fonte do recurso
+  if (villagers.length > 0) {
+    const worker = villagers[index % villagers.length];
+    worker.targetX = node.x;
+    worker.targetY = node.y;
+  }
+
+  floatingEffects.push({
+    text: node.type === 'tree' ? '🪓 CORTANDO...' : '⛏️ MINERANDO...',
+    x: node.x,
+    y: node.y - 20,
+    color: '#fbbf24',
+    life: 45
+  });
+
+  resourceNodes.splice(index, 1);
+
+  try {
+    const res = await fetch('/api/kingdom/gather', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: selfKingdom.username, nodeType: node.type })
+    });
+    const data = await res.json();
+    if (data.success) {
+      selfKingdom = data.user;
+      updateHud(selfKingdom);
+
+      floatingEffects.push({
+        text: data.rewardText,
+        x: node.x,
+        y: node.y - 45,
+        color: '#34d399',
+        life: 75
+      });
+    }
+  } catch (err) {}
+}
+
 async function huntWildAnimal(animal, index) {
   if (!selfKingdom) return;
   playSound('hammer');
+
+  if (villagers.length > 0) {
+    const hunter = villagers[0];
+    hunter.targetX = animal.x;
+    hunter.targetY = animal.y;
+  }
 
   floatingEffects.push({
     text: `🏹 CAÇADO!`,
@@ -1101,6 +1195,9 @@ function renderLoop() {
 
     // Aldeões Caminhando pela Vila
     updateAndRenderVillagers(startX, startY);
+
+    // Fontes de Recursos Naturais (Árvores 🌲, Rochas de Ouro 🪨)
+    updateAndRenderResourceNodes(startX, startY);
 
     // Animais Selvagens Caminhando pelo Mapa (Cervos 🦌, Javalis 🐗, Lobos 🐺)
     updateAndRenderWildAnimals(startX, startY);
