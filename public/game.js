@@ -92,12 +92,38 @@ window.addEventListener('DOMContentLoaded', () => {
 function runSplashScreen() {
   const fill = document.getElementById('splash-loader-fill');
   const btn = document.getElementById('btn-enter-splash');
+  
+  // Tenta auto-login com a sessão salva enquanto carrega a splash
+  autoLoginSavedSession();
+
   if (fill) {
     setTimeout(() => { fill.style.width = '100%'; }, 100);
     setTimeout(() => {
       if (btn) btn.classList.remove('hidden');
     }, 1400);
   }
+}
+
+async function autoLoginSavedSession() {
+  const savedUser = localStorage.getItem('reinos_auth_user');
+  const savedPass = localStorage.getItem('reinos_auth_pass');
+
+  if (savedUser && savedPass) {
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: savedUser, password: savedPass })
+      });
+      const data = await res.json();
+      if (data.success) {
+        currentUser = data.user;
+        socket.emit('join_game', { username: data.user.username });
+        return true;
+      }
+    } catch (err) {}
+  }
+  return false;
 }
 
 function closeSplashScreen() {
@@ -111,6 +137,14 @@ function closeSplashScreen() {
         if (authModal) authModal.classList.remove('hidden');
       }
     }, 400);
+  }
+}
+
+function logoutUser() {
+  if (confirm('Deseja realmente sair da sua conta do Império?')) {
+    localStorage.removeItem('reinos_auth_user');
+    localStorage.removeItem('reinos_auth_pass');
+    location.reload();
   }
 }
 
@@ -253,6 +287,8 @@ async function handleAuthSubmit(e) {
     const data = await res.json();
     if (data.success) {
       currentUser = data.user;
+      localStorage.setItem('reinos_auth_user', username);
+      localStorage.setItem('reinos_auth_pass', password);
       socket.emit('join_game', { username: data.user.username });
     } else {
       document.getElementById('auth-error').innerText = data.message;
