@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Reinos de Guerra - Estratégia Imperial MMO</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,8 +12,23 @@
 </head>
 <body>
 
+  <!-- TELA SPLASH INICIAL ANIMADA -->
+  <div id="splash-screen" class="splash-overlay">
+    <div class="splash-content">
+      <div class="splash-logo">🏰</div>
+      <h1 class="splash-title">REINOS DE GUERRA</h1>
+      <p class="splash-subtitle">Estratégia & Batalha de Impérios Online</p>
+      <div class="splash-loader-bar">
+        <div id="splash-loader-fill" class="splash-loader-fill"></div>
+      </div>
+      <button id="btn-enter-splash" class="btn btn-gold btn-glow splash-btn hidden" onclick="closeSplashScreen()">
+        ENTRAR NO IMPÉRIO ⚔️
+      </button>
+    </div>
+  </div>
+
   <!-- MODAL DE ENTRADA -->
-  <div id="auth-modal" class="modal-overlay">
+  <div id="auth-modal" class="modal-overlay hidden">
     <div class="auth-box glass-panel">
       <div class="logo-area">
         <span class="game-icon">🏰</span>

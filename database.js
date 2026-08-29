@@ -61,17 +61,24 @@ class Database {
       clan: null,
       role: isFirstUser ? 'admin' : 'player',
       buildings: [
-        { id: 'townhall', name: 'Centro da Vila', level: 1, icon: '🏰', x: 2, y: 2, isUpgrading: false, finishTime: null },
-        { id: 'goldmine', name: 'Mina de Ouro', level: 1, icon: '⛏️', x: 1, y: 1, isUpgrading: false, finishTime: null },
-        { id: 'sawmill', name: 'Serraria', level: 1, icon: '🪓', x: 3, y: 1, isUpgrading: false, finishTime: null },
-        { id: 'barracks', name: 'Quartel de Tropas', level: 1, icon: '⚔️', x: 1, y: 3, isUpgrading: false, finishTime: null },
-        { id: 'tower', name: 'Torre de Defesa', level: 1, icon: '🏹', x: 3, y: 3, isUpgrading: false, finishTime: null }
+        { id: 'townhall', name: 'Centro da Vila', level: 1, icon: '🏰', x: 2, y: 2, isUpgrading: false, finishTime: null, reqLevel: 1 },
+        { id: 'goldmine', name: 'Mina de Ouro', level: 1, icon: '⛏️', x: 1, y: 1, isUpgrading: false, finishTime: null, reqLevel: 1 },
+        { id: 'sawmill', name: 'Serraria', level: 1, icon: '🪓', x: 3, y: 1, isUpgrading: false, finishTime: null, reqLevel: 1 },
+        { id: 'barracks', name: 'Quartel de Tropas', level: 1, icon: '⚔️', x: 1, y: 3, isUpgrading: false, finishTime: null, reqLevel: 2 },
+        { id: 'tower', name: 'Torre de Defesa', level: 1, icon: '🏹', x: 3, y: 3, isUpgrading: false, finishTime: null, reqLevel: 2 },
+        { id: 'wall', name: 'Muralhas de Pedra', level: 0, icon: '🧱', x: 2, y: 4, isUpgrading: false, finishTime: null, reqLevel: 2 },
+        { id: 'alchemy', name: 'Academia de Alquimia', level: 0, icon: '🧪', x: 0, y: 2, isUpgrading: false, finishTime: null, reqLevel: 3 },
+        { id: 'gemmine', name: 'Mina de Gemas', level: 0, icon: '💎', x: 4, y: 2, isUpgrading: false, finishTime: null, reqLevel: 4 }
       ],
       army: {
         warrior: 10,
         archer: 5,
         wizard: 0,
         dragon: 0
+      },
+      spells: {
+        meteor: 0,
+        heal: 0
       },
       battleLogs: [],
       lastResourceUpdate: Date.now(),
@@ -107,15 +114,30 @@ class Database {
     if (!user.maxWood) user.maxWood = 5000;
     if (!user.gems) user.gems = 50;
     if (!user.trophies) user.trophies = 100;
+    if (!user.spells) user.spells = { meteor: 0, heal: 0 };
+    
+    // Garantir presença de todos os edifícios novos no usuário existente
+    const defaultBuildings = [
+      { id: 'townhall', name: 'Centro da Vila', level: 1, icon: '🏰', x: 2, y: 2, isUpgrading: false, finishTime: null, reqLevel: 1 },
+      { id: 'goldmine', name: 'Mina de Ouro', level: 1, icon: '⛏️', x: 1, y: 1, isUpgrading: false, finishTime: null, reqLevel: 1 },
+      { id: 'sawmill', name: 'Serraria', level: 1, icon: '🪓', x: 3, y: 1, isUpgrading: false, finishTime: null, reqLevel: 1 },
+      { id: 'barracks', name: 'Quartel de Tropas', level: 1, icon: '⚔️', x: 1, y: 3, isUpgrading: false, finishTime: null, reqLevel: 2 },
+      { id: 'tower', name: 'Torre de Defesa', level: 1, icon: '🏹', x: 3, y: 3, isUpgrading: false, finishTime: null, reqLevel: 2 },
+      { id: 'wall', name: 'Muralhas de Pedra', level: 0, icon: '🧱', x: 2, y: 4, isUpgrading: false, finishTime: null, reqLevel: 2 },
+      { id: 'alchemy', name: 'Academia de Alquimia', level: 0, icon: '🧪', x: 0, y: 2, isUpgrading: false, finishTime: null, reqLevel: 3 },
+      { id: 'gemmine', name: 'Mina de Gemas', level: 0, icon: '💎', x: 4, y: 2, isUpgrading: false, finishTime: null, reqLevel: 4 }
+    ];
+
     if (!user.buildings) {
-      user.buildings = [
-        { id: 'townhall', name: 'Centro da Vila', level: 1, icon: '🏰', x: 2, y: 2, isUpgrading: false, finishTime: null },
-        { id: 'goldmine', name: 'Mina de Ouro', level: 1, icon: '⛏️', x: 1, y: 1, isUpgrading: false, finishTime: null },
-        { id: 'sawmill', name: 'Serraria', level: 1, icon: '🪓', x: 3, y: 1, isUpgrading: false, finishTime: null },
-        { id: 'barracks', name: 'Quartel de Tropas', level: 1, icon: '⚔️', x: 1, y: 3, isUpgrading: false, finishTime: null },
-        { id: 'tower', name: 'Torre de Defesa', level: 1, icon: '🏹', x: 3, y: 3, isUpgrading: false, finishTime: null }
-      ];
+      user.buildings = defaultBuildings;
+    } else {
+      defaultBuildings.forEach(def => {
+        if (!user.buildings.some(b => b.id === def.id)) {
+          user.buildings.push({ ...def });
+        }
+      });
     }
+
     if (!user.army) user.army = { warrior: 10, archer: 5, wizard: 0, dragon: 0 };
     if (!user.battleLogs) user.battleLogs = [];
 
@@ -125,12 +147,20 @@ class Database {
     if (elapsedSeconds > 0) {
       const goldMine = user.buildings.find(b => b.id === 'goldmine');
       const sawmill = user.buildings.find(b => b.id === 'sawmill');
+      const gemMine = user.buildings.find(b => b.id === 'gemmine');
 
       const goldRate = (goldMine ? goldMine.level : 1) * 4;
       const woodRate = (sawmill ? sawmill.level : 1) * 4;
 
       user.gold = Math.min(user.maxGold, user.gold + goldRate * elapsedSeconds);
       user.wood = Math.min(user.maxWood, user.wood + woodRate * elapsedSeconds);
+      
+      // Produção passiva de Gemas da Mina de Gemas (1 gema a cada 12h por nível)
+      if (gemMine && gemMine.level > 0) {
+        const gemsEarned = Math.floor((elapsedSeconds / 43200) * gemMine.level);
+        if (gemsEarned > 0) user.gems += gemsEarned;
+      }
+
       user.lastResourceUpdate = now;
 
       // Verificar Conclusão de Obras (Timers de Construção)
@@ -164,8 +194,34 @@ class Database {
     if (!b) throw new Error('Construção não encontrada.');
     if (b.isUpgrading) throw new Error('Este edifício já está sendo melhorado!');
 
-    const costGold = b.level * 250;
-    const costWood = b.level * 250;
+    const townhall = user.buildings.find(item => item.id === 'townhall');
+    const townhallLevel = townhall ? townhall.level : 1;
+
+    // Regras de Nível Mínimo do Centro da Vila para Desbloqueio
+    const REQ_TOWNHALL_LEVEL = {
+      townhall: 1,
+      goldmine: 1,
+      sawmill: 1,
+      barracks: 2,
+      tower: 2,
+      wall: 2,
+      alchemy: 3,
+      gemmine: 4
+    };
+
+    const minTownhallReq = REQ_TOWNHALL_LEVEL[b.id] || 1;
+    if (townhallLevel < minTownhallReq) {
+      throw new Error(`🔒 Requer Centro da Vila Nível ${minTownhallReq} para desbloquear a construção de ${b.name}!`);
+    }
+
+    // Nível dos edifícios não pode superar o nível do Centro da Vila
+    if (b.id !== 'townhall' && b.level >= townhallLevel) {
+      throw new Error(`👑 Você precisa evoluir o Centro da Vila para o Nível ${b.level + 1} para liberar novas melhorias para ${b.name}!`);
+    }
+
+    const baseCost = b.level === 0 ? 300 : b.level * 250;
+    const costGold = baseCost;
+    const costWood = baseCost;
 
     if (user.gold < costGold || user.wood < costWood) {
       throw new Error(`Recursos insuficientes! Requer 🪙 ${costGold} Ouro e 🪓 ${costWood} Madeira.`);
@@ -275,7 +331,10 @@ class Database {
 
     const tower = defender.buildings.find(b => b.id === 'tower');
     const townhall = defender.buildings.find(b => b.id === 'townhall');
-    const defenderPower = (tower ? tower.level * 90 : 60) + (townhall ? townhall.level * 60 : 40);
+    const wall = defender.buildings.find(b => b.id === 'wall');
+    const defenderPower = (tower ? tower.level * 90 : 60) +
+                          (townhall ? townhall.level * 60 : 40) +
+                          (wall ? wall.level * 120 : 0);
 
     const isVictory = attackerPower > defenderPower;
 

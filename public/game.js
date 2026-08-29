@@ -85,7 +85,33 @@ window.addEventListener('DOMContentLoaded', () => {
   setupSocket();
   renderLoop();
   checkCookieConsent();
+  runSplashScreen();
 });
+
+function runSplashScreen() {
+  const fill = document.getElementById('splash-loader-fill');
+  const btn = document.getElementById('btn-enter-splash');
+  if (fill) {
+    setTimeout(() => { fill.style.width = '100%'; }, 100);
+    setTimeout(() => {
+      if (btn) btn.classList.remove('hidden');
+    }, 1400);
+  }
+}
+
+function closeSplashScreen() {
+  const splash = document.getElementById('splash-screen');
+  if (splash) {
+    splash.style.opacity = '0';
+    setTimeout(() => {
+      splash.classList.add('hidden');
+      if (!currentUser) {
+        const authModal = document.getElementById('auth-modal');
+        if (authModal) authModal.classList.remove('hidden');
+      }
+    }, 400);
+  }
+}
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -299,7 +325,7 @@ function addChatMessage(sender, text, type = 'normal', isVip = false, role = 'pl
   box.scrollTop = box.scrollHeight;
 }
 
-// EDIFÍCIOS DA VILA & TIMERS DE CONSTRUÇÃO
+// EDIFÍCIOS DA VILA & TIMERS DE CONSTRUÇÃO (COM DESBLOQUEIO POR NÍVEL DO CENTRO DA VILA)
 function toggleBuildingsModal() {
   const modal = document.getElementById('buildings-modal');
   const isOpening = modal.classList.contains('hidden');
@@ -309,27 +335,61 @@ function toggleBuildingsModal() {
     const grid = document.getElementById('buildings-grid');
     grid.innerHTML = '';
 
+    const townhall = selfKingdom.buildings.find(b => b.id === 'townhall');
+    const townhallLevel = townhall ? townhall.level : 1;
+
+    const REQ_LEVELS = {
+      townhall: 1,
+      goldmine: 1,
+      sawmill: 1,
+      barracks: 2,
+      tower: 2,
+      wall: 2,
+      alchemy: 3,
+      gemmine: 4
+    };
+
     selfKingdom.buildings.forEach(b => {
-      const costGold = b.level * 250;
-      const costWood = b.level * 250;
+      const minReq = REQ_LEVELS[b.id] || 1;
+      const isLocked = townhallLevel < minReq;
+      const requiresTownhallUpgrade = (b.id !== 'townhall') && (b.level >= townhallLevel);
+
+      const baseCost = b.level === 0 ? 300 : b.level * 250;
+      const costGold = baseCost;
+      const costWood = baseCost;
       const now = Date.now();
       const isUpgrading = b.isUpgrading && b.finishTime && now < b.finishTime;
       const remainingSec = isUpgrading ? Math.ceil((b.finishTime - now) / 1000) : 0;
 
       const card = document.createElement('div');
-      card.className = 'building-card';
+      card.className = `building-card ${isLocked ? 'locked-building' : ''}`;
+      
+      let buttonHtml = '';
+      if (isLocked) {
+        buttonHtml = `<button class="btn btn-secondary btn-sm" disabled>🔒 BLOQUEADO (REQUER VILA NÍVEL ${minReq})</button>`;
+      } else if (requiresTownhallUpgrade) {
+        buttonHtml = `<div style="font-size:11px; color:#f59e0b; margin-bottom:6px;">👑 Requer Centro da Vila Nível ${b.level + 1}</div>
+                      <button class="btn btn-secondary btn-sm" disabled>MELHORE O CENTRO DA VILA 🏰</button>`;
+      } else if (isUpgrading) {
+        buttonHtml = `<div style="color:#38bdf8; font-weight:bold; font-size:13px; margin-bottom:8px;">⏳ Obras em Andamento: ${remainingSec}s</div>
+                      <button class="btn btn-gold btn-sm" onclick="finishGemsBuilding('${b.id}')">CONCLUIR COM GEMAS ⚡</button>`;
+      } else {
+        const actionLabel = b.level === 0 ? 'CONSTRUIR 🔨' : 'EVOLUIR EDIFÍCIO 🔨';
+        buttonHtml = `<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Custo: 🪙 ${costGold} | 🪓 ${costWood}</div>
+                      <button class="btn btn-primary btn-sm" onclick="startUpgradeBuilding('${b.id}')">${actionLabel}</button>`;
+      }
+
       card.innerHTML = `
         <div>
           <div class="building-icon">${b.icon}</div>
-          <div style="font-weight:bold; font-size:16px;">${b.name}</div>
-          <div style="color:var(--gold-color); font-size:13px; margin:4px 0;">Nível ${b.level}</div>
+          <div style="font-weight:bold; font-size:16px;">${b.name} ${isLocked ? '🔒' : ''}</div>
+          <div style="color:var(--gold-color); font-size:13px; margin:4px 0;">
+            ${b.level > 0 ? `Nível ${b.level}` : '<span style="color:#94a3b8;">Não Construído</span>'}
+          </div>
+          <div style="font-size:11px; color:var(--text-muted);">Liberado no Centro da Vila Nível ${minReq}</div>
         </div>
         <div style="margin-top:12px;">
-          ${isUpgrading ? 
-            `<div style="color:#38bdf8; font-weight:bold; font-size:13px; margin-bottom:8px;">⏳ Obras em Andamento: ${remainingSec}s</div>
-             <button class="btn btn-gold btn-sm" onclick="finishGemsBuilding('${b.id}')">CONCLUIR COM GEMAS ⚡</button>` : 
-            `<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Custo: 🪙 ${costGold} | 🪓 ${costWood}</div>
-             <button class="btn btn-primary btn-sm" onclick="startUpgradeBuilding('${b.id}')">EVOLUIR EDIFÍCIO 🔨</button>`}
+          ${buttonHtml}
         </div>
       `;
       grid.appendChild(card);
@@ -715,24 +775,28 @@ function renderLoop() {
     selfKingdom.buildings.forEach(b => {
       const bx = startX + (b.x * 130);
       const by = startY + (b.y * 110);
+      const isUnbuilt = b.level === 0;
 
       // Base do Edifício 3D com Bordas Douradas
-      ctx.fillStyle = '#334155';
+      ctx.fillStyle = isUnbuilt ? 'rgba(30, 41, 59, 0.5)' : '#334155';
       ctx.fillRect(bx - 48, by - 48, 96, 96);
-      ctx.strokeStyle = '#f59e0b';
+      ctx.strokeStyle = isUnbuilt ? 'rgba(148, 163, 184, 0.4)' : '#f59e0b';
       ctx.lineWidth = 2;
       ctx.strokeRect(bx - 48, by - 48, 96, 96);
 
       // Ícone com Animação Flutuante
-      const pulse = Math.sin(frameCount * 0.05 + b.x) * 3;
+      const pulse = isUnbuilt ? 0 : Math.sin(frameCount * 0.05 + b.x) * 3;
       ctx.font = '48px sans-serif';
       ctx.textAlign = 'center';
+      ctx.globalAlpha = isUnbuilt ? 0.4 : 1.0;
       ctx.fillText(b.icon, bx, by + 12 + pulse);
+      ctx.globalAlpha = 1.0;
 
       // Nome do Edifício e Nível
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = isUnbuilt ? '#94a3b8' : '#ffffff';
       ctx.font = 'bold 12px Outfit, sans-serif';
-      ctx.fillText(`${b.name} (Lvl ${b.level})`, bx, by + 62);
+      const lvlText = isUnbuilt ? '(🔒 Não Construído)' : `(Lvl ${b.level})`;
+      ctx.fillText(`${b.name} ${lvlText}`, bx, by + 62);
 
       // BARRA DE TEMPO DE OBRAS EM ANDAMENTO
       const now = Date.now();
