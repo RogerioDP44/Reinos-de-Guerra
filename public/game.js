@@ -1215,3 +1215,133 @@ async function leaveClan() {
     } catch (err) {}
   }
 }
+
+// --- MISSÕES DIÁRIAS & PASSE DE BATALHA ---
+function toggleQuestsModal() {
+  if (!selfKingdom) return;
+  const modal = document.getElementById('quests-modal');
+  const isOpening = modal.classList.contains('hidden');
+  modal.classList.toggle('hidden');
+
+  if (isOpening) {
+    renderQuestsAndBattlePass();
+  }
+}
+
+function renderQuestsAndBattlePass() {
+  if (!selfKingdom) return;
+
+  // Passe Imperial
+  const pass = selfKingdom.battlePass || { level: 1, xp: 0, maxXp: 100, claimedLevels: [] };
+  document.getElementById('pass-level').innerText = pass.level;
+  document.getElementById('pass-xp').innerText = pass.xp;
+  document.getElementById('pass-max-xp').innerText = pass.maxXp;
+
+  const pct = Math.min(100, Math.floor((pass.xp / pass.maxXp) * 100));
+  document.getElementById('pass-xp-fill').style.width = `${pct}%`;
+
+  const rewardsRow = document.getElementById('pass-rewards-row');
+  rewardsRow.innerHTML = '';
+
+  const LEVELS = [
+    { lvl: 1, reward: '💎 25 Gemas' },
+    { lvl: 2, reward: '🪙 1.000 Ouro' },
+    { lvl: 3, reward: '💎 50 Gemas' },
+    { lvl: 4, reward: '🛡️ Escudo 12h' },
+    { lvl: 5, reward: '👑 VIP 3 Dias + 100 Gemas' }
+  ];
+
+  LEVELS.forEach(l => {
+    const isUnlocked = pass.level >= l.lvl;
+    const isClaimed = (pass.claimedLevels || []).includes(l.lvl);
+
+    const card = document.createElement('div');
+    card.className = 'glass-panel';
+    card.style.cssText = 'min-width:120px; padding:8px; text-align:center; flex-shrink:0; font-size:12px;';
+    card.innerHTML = `
+      <div style="font-weight:bold; color:#fbbf24;">Nível ${l.lvl}</div>
+      <div style="margin:4px 0; color:var(--text-muted); font-size:11px;">${l.reward}</div>
+      ${isClaimed ? `<span style="color:#34d399; font-weight:bold;">RESGATADO ✓</span>` :
+        isUnlocked ? `<button class="btn btn-gold btn-sm" onclick="claimBattlePassReward(${l.lvl})">RESGATAR 🎁</button>` :
+        `<span style="color:#94a3b8;">🔒 BLOQUEADO</span>`}
+    `;
+    rewardsRow.appendChild(card);
+  });
+
+  // Lista de Missões
+  const quests = selfKingdom.quests || [];
+  const list = document.getElementById('quests-list');
+  list.innerHTML = '';
+
+  quests.forEach(q => {
+    const card = document.createElement('div');
+    card.className = 'enemy-card';
+    card.style.cssText = 'margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;';
+
+    let rewardText = '';
+    if (q.rewardGold) rewardText += ` 🪙 +${q.rewardGold}`;
+    if (q.rewardWood) rewardText += ` 🪓 +${q.rewardWood}`;
+    if (q.rewardGems) rewardText += ` 💎 +${q.rewardGems}`;
+    if (q.rewardXp) rewardText += ` ⚡ +${q.rewardXp} XP`;
+
+    let buttonHtml = '';
+    if (q.isClaimed) {
+      buttonHtml = `<button class="btn btn-secondary btn-sm" disabled>CONCLUÍDO ✓</button>`;
+    } else if (q.isCompleted) {
+      buttonHtml = `<button class="btn btn-gold btn-sm btn-glow" onclick="claimQuestReward('${q.id}')">RESGATAR RECOMPENSA 🎁</button>`;
+    } else {
+      buttonHtml = `<button class="btn btn-secondary btn-sm" disabled>EM ANDAMENTO ⏳</button>`;
+    }
+
+    card.innerHTML = `
+      <div>
+        <div style="font-weight:bold; font-size:15px; color:#fbbf24;">${q.title}</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${q.desc}</div>
+        <div style="font-size:12px; color:#34d399; margin-top:4px;">Recompensa:${rewardText}</div>
+      </div>
+      <div>${buttonHtml}</div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+async function claimQuestReward(questId) {
+  if (!selfKingdom) return;
+  try {
+    const res = await fetch('/api/quests/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: selfKingdom.username, questId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      playSound('gold');
+      selfKingdom = data.user;
+      updateHud(selfKingdom);
+      renderQuestsAndBattlePass();
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {}
+}
+
+async function claimBattlePassReward(level) {
+  if (!selfKingdom) return;
+  try {
+    const res = await fetch('/api/battlepass/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: selfKingdom.username, level })
+    });
+    const data = await res.json();
+    if (data.success) {
+      playSound('gold');
+      selfKingdom = data.user;
+      updateHud(selfKingdom);
+      renderQuestsAndBattlePass();
+      alert('🎉 Recompensa do Passe Imperial resgatada com sucesso!');
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {}
+}

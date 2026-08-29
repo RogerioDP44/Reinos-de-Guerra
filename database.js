@@ -80,6 +80,17 @@ class Database {
         meteor: 0,
         heal: 0
       },
+      quests: [
+        { id: 'quest_upgrade', title: '🔨 Mestre Construtor', desc: 'Inicie 1 melhoria de edifício', rewardGold: 300, rewardGems: 10, rewardXp: 50, isCompleted: false, isClaimed: false },
+        { id: 'quest_train', title: '🏹 Treinador de Tropas', desc: 'Treine pelo menos 1 nova tropa no Quartel', rewardGold: 250, rewardWood: 250, rewardXp: 50, isCompleted: false, isClaimed: false },
+        { id: 'quest_attack', title: '⚔️ Conquistador de Reinos', desc: 'Marche para a guerra e realize 1 ataque', rewardGold: 500, rewardGems: 15, rewardXp: 100, isCompleted: false, isClaimed: false }
+      ],
+      battlePass: {
+        level: 1,
+        xp: 0,
+        maxXp: 100,
+        claimedLevels: []
+      },
       battleLogs: [],
       lastResourceUpdate: Date.now(),
       createdAt: new Date().toISOString()
@@ -115,6 +126,16 @@ class Database {
     if (!user.gems) user.gems = 50;
     if (!user.trophies) user.trophies = 100;
     if (!user.spells) user.spells = { meteor: 0, heal: 0 };
+    if (!user.quests) {
+      user.quests = [
+        { id: 'quest_upgrade', title: '🔨 Mestre Construtor', desc: 'Inicie 1 melhoria de edifício', rewardGold: 300, rewardGems: 10, rewardXp: 50, isCompleted: false, isClaimed: false },
+        { id: 'quest_train', title: '🏹 Treinador de Tropas', desc: 'Treine pelo menos 1 nova tropa no Quartel', rewardGold: 250, rewardWood: 250, rewardXp: 50, isCompleted: false, isClaimed: false },
+        { id: 'quest_attack', title: '⚔️ Conquistador de Reinos', desc: 'Marche para a guerra e realize 1 ataque', rewardGold: 500, rewardGems: 15, rewardXp: 100, isCompleted: false, isClaimed: false }
+      ];
+    }
+    if (!user.battlePass) {
+      user.battlePass = { level: 1, xp: 0, maxXp: 100, claimedLevels: [] };
+    }
     
     // Garantir presença de todos os edifícios novos no usuário existente
     const defaultBuildings = [
@@ -235,6 +256,12 @@ class Database {
     b.isUpgrading = true;
     b.finishTime = Date.now() + durationMs;
 
+    // Disparar conclusão da Missão Mestre Construtor
+    if (user.quests) {
+      const q = user.quests.find(item => item.id === 'quest_upgrade');
+      if (q) q.isCompleted = true;
+    }
+
     this.save();
     return user;
   }
@@ -306,6 +333,11 @@ class Database {
     user.wood -= totalWood;
     user.army[troopType] = (user.army[troopType] || 0) + count;
 
+    if (user.quests) {
+      const q = user.quests.find(item => item.id === 'quest_train');
+      if (q) q.isCompleted = true;
+    }
+
     this.save();
     return user;
   }
@@ -316,6 +348,12 @@ class Database {
 
     if (!attacker || !defender) throw new Error('Reino não encontrado.');
     if (attackerName === defenderName) throw new Error('Você não pode atacar seu próprio reino!');
+
+    // Disparar conclusão da Missão Conquistador de Reinos
+    if (attacker.quests) {
+      const q = attacker.quests.find(item => item.id === 'quest_attack');
+      if (q) q.isCompleted = true;
+    }
 
     // Verificar Escudo de Paz Ativo no Defensor
     if (defender.shieldUntil && new Date(defender.shieldUntil) > new Date()) {
@@ -425,6 +463,69 @@ class Database {
 
   getPayment(paymentId) {
     return this.data.payments[paymentId] || null;
+  }
+
+  // --- MISSÕES DIÁRIAS & PASSE DE BATALHA ---
+  claimQuest(username, questId) {
+    const cleanUser = username.toLowerCase();
+    const user = this.getUser(cleanUser);
+    if (!user) throw new Error('Usuário não encontrado.');
+
+    if (!user.quests) user.quests = [];
+    const q = user.quests.find(item => item.id === questId);
+    if (!q) throw new Error('Missão não encontrada.');
+    if (!q.isCompleted) throw new Error('Esta missão ainda não foi concluída!');
+    if (q.isClaimed) throw new Error('Você já resgatou esta recompensa!');
+
+    q.isClaimed = true;
+    if (q.rewardGold) user.gold = Math.min(user.maxGold, user.gold + q.rewardGold);
+    if (q.rewardWood) user.wood = Math.min(user.maxWood, user.wood + q.rewardWood);
+    if (q.rewardGems) user.gems += q.rewardGems;
+
+    if (q.rewardXp) {
+      if (!user.battlePass) user.battlePass = { level: 1, xp: 0, maxXp: 100, claimedLevels: [] };
+      user.battlePass.xp += q.rewardXp;
+      if (user.battlePass.xp >= user.battlePass.maxXp) {
+        user.battlePass.level += 1;
+        user.battlePass.xp -= user.battlePass.maxXp;
+        user.battlePass.maxXp += 50;
+      }
+    }
+
+    this.save();
+    return user;
+  }
+
+  claimBattlePassLevel(username, targetLevel) {
+    const cleanUser = username.toLowerCase();
+    const user = this.getUser(cleanUser);
+    if (!user) throw new Error('Usuário não encontrado.');
+
+    if (!user.battlePass) user.battlePass = { level: 1, xp: 0, maxXp: 100, claimedLevels: [] };
+    if (user.battlePass.level < targetLevel) throw new Error('Você ainda não atingiu este nível do Passe!');
+
+    if (!user.battlePass.claimedLevels) user.battlePass.claimedLevels = [];
+    if (user.battlePass.claimedLevels.includes(targetLevel)) throw new Error('Recompensa já resgatada!');
+
+    user.battlePass.claimedLevels.push(targetLevel);
+
+    const passRewards = {
+      1: { gems: 25 },
+      2: { gold: 1000, wood: 1000 },
+      3: { gems: 50 },
+      4: { shieldHours: 12 },
+      5: { gems: 100, vipDays: 3 }
+    };
+
+    const reward = passRewards[targetLevel] || { gems: 20 };
+    if (reward.gems) user.gems += reward.gems;
+    if (reward.gold) user.gold = Math.min(user.maxGold, user.gold + reward.gold);
+    if (reward.wood) user.wood = Math.min(user.maxWood, user.wood + reward.wood);
+    if (reward.shieldHours) user.shieldUntil = new Date(Date.now() + reward.shieldHours * 3600 * 1000).toISOString();
+    if (reward.vipDays) this.addGemsAndVip(username, 0, reward.vipDays);
+
+    this.save();
+    return user;
   }
 
   getKingdomList(excludeUsername) {

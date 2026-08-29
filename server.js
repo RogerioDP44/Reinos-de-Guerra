@@ -254,6 +254,53 @@ app.post('/api/pix/simulate-approval', (req, res) => {
   }
 });
 
+// --- ROTAS DE MISSÕES DIÁRIAS & PASSE DE BATALHA ---
+app.post('/api/quests/claim', (req, res) => {
+  try {
+    const { username, questId } = req.body;
+    const updatedUser = db.claimQuest(username, questId);
+    res.json({ success: true, user: sanitizeUser(updatedUser) });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/battlepass/claim', (req, res) => {
+  try {
+    const { username, level } = req.body;
+    const updatedUser = db.claimBattlePassLevel(username, level);
+    res.json({ success: true, user: sanitizeUser(updatedUser) });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// --- WEBHOOK OFICIAL MERCADO PAGO / PIX REAL AUTOMÁTICO ---
+app.post('/api/pix/webhook', (req, res) => {
+  try {
+    const { action, data, type } = req.body;
+    if ((type === 'payment' || action === 'payment.created' || action === 'payment.updated') && data && data.id) {
+      const paymentId = data.id.toString();
+      const result = pixService.confirmPayment(paymentId);
+
+      if (result && result.username) {
+        const socketId = Object.keys(activeSockets).find(sId => activeSockets[sId] === result.username);
+        if (socketId && io.sockets.sockets.get(socketId)) {
+          const user = db.getUser(result.username);
+          io.sockets.sockets.get(socketId).emit('account_updated', {
+            gems: user.gems,
+            isVip: user.isVip,
+            message: `🎉 PIX Real Aprovado! +${result.gems} Gemas adicionadas!`
+          });
+        }
+      }
+    }
+    res.status(200).send('OK');
+  } catch (err) {
+    res.status(200).send('OK');
+  }
+});
+
 function sanitizeUser(user) {
   const copy = { ...user };
   delete copy.passwordHash;
