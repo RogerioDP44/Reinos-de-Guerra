@@ -30,8 +30,9 @@ npm install
 sudo ufw allow 3005/tcp
 
 # 6. Iniciar o Jogo com PM2 (Roda 24/7 em segundo plano)
-echo "⚡ Iniciando o servidor do jogo..."
+echo "⚡ Iniciando o servidor do jogo na porta 3005..."
 pm2 stop mmorpg-game 2>/dev/null || true
+pm2 delete mmorpg-game 2>/dev/null || true
 PORT=3005 pm2 start server.js --name "mmorpg-game"
 
 # 7. Configurar PM2 para inicializar junto com o Ubuntu (Auto-boot)
