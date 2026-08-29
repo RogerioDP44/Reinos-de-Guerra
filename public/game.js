@@ -83,6 +83,7 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', resizeCanvas);
   setupCameraDrag();
   setupSocket();
+  setupCanvasHuntingClick();
   renderLoop();
   checkCookieConsent();
   runSplashScreen();
@@ -286,6 +287,8 @@ function updateHud(k) {
   document.getElementById('hud-kingdom-name').innerText = k.kingdomName || k.username;
   document.getElementById('hud-gold').innerText = `${Math.floor(k.gold)} / ${k.maxGold}`;
   document.getElementById('hud-wood').innerText = `${Math.floor(k.wood)} / ${k.maxWood}`;
+  if (document.getElementById('hud-meat')) document.getElementById('hud-meat').innerText = k.meat || 0;
+  if (document.getElementById('hud-leather')) document.getElementById('hud-leather').innerText = k.leather || 0;
   document.getElementById('hud-gems').innerText = k.gems;
   document.getElementById('hud-trophies').innerText = k.trophies;
 
@@ -892,6 +895,127 @@ function drawBuildingTorch(bx, by) {
   ctx.fill();
 }
 
+// SISTEMA DE ANIMAIS SELVAGENS & CAÇA NO MAPA 2D
+// =========================================================================
+let wildAnimals = [];
+
+function spawnWildAnimals(startX, startY) {
+  if (wildAnimals.length < 5 && selfKingdom) {
+    const types = [
+      { id: 'deer', icon: '🦌', name: 'Cervo Selvagem' },
+      { id: 'boar', icon: '🐗', name: 'Javali das Montanhas' },
+      { id: 'wolf', icon: '🐺', name: 'Lobo Feroz' }
+    ];
+
+    const typeObj = types[Math.floor(Math.random() * types.length)];
+    const animal = {
+      id: 'animal_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      type: typeObj.id,
+      icon: typeObj.icon,
+      name: typeObj.name,
+      x: startX + (Math.random() * 600 - 100),
+      y: startY + (Math.random() * 500 - 100),
+      targetX: startX + (Math.random() * 600 - 100),
+      targetY: startY + (Math.random() * 500 - 100),
+      speed: 0.5 + Math.random() * 0.4,
+      stepOffset: Math.random() * 10
+    };
+    wildAnimals.push(animal);
+  }
+}
+
+function updateAndRenderWildAnimals(startX, startY) {
+  if (frameCount % 180 === 0) {
+    spawnWildAnimals(startX, startY);
+  }
+
+  wildAnimals.forEach(a => {
+    const dx = a.targetX - a.x;
+    const dy = a.targetY - a.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < 10) {
+      a.targetX = startX + (Math.random() * 600 - 100);
+      a.targetY = startY + (Math.random() * 500 - 100);
+    } else {
+      a.x += (dx / dist) * a.speed;
+      a.y += (dy / dist) * a.speed;
+    }
+
+    const bounce = Math.abs(Math.sin((frameCount + a.stepOffset) * 0.12)) * 5;
+
+    // Ícone do Animal Selvagem
+    ctx.font = '32px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(a.icon, a.x, a.y - bounce);
+
+    // Sombra do Animal no Chão
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(a.x, a.y, 12, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Selo de Clique para Caça
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '900 10px Outfit, sans-serif';
+    ctx.fillText('🎯 CAÇAR!', a.x, a.y - bounce - 22);
+  });
+}
+
+function setupCanvasHuntingClick() {
+  canvas.addEventListener('click', (e) => {
+    if (!selfKingdom) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left - cameraOffset.x;
+    const clickY = e.clientY - rect.top - cameraOffset.y;
+
+    for (let i = wildAnimals.length - 1; i >= 0; i--) {
+      const a = wildAnimals[i];
+      const dist = Math.hypot(clickX - a.x, clickY - a.y);
+      if (dist < 38) {
+        huntWildAnimal(a, i);
+        break;
+      }
+    }
+  });
+}
+
+async function huntWildAnimal(animal, index) {
+  if (!selfKingdom) return;
+  playSound('hammer');
+
+  floatingEffects.push({
+    text: `🏹 CAÇADO!`,
+    x: animal.x,
+    y: animal.y - 20,
+    color: '#fbbf24',
+    life: 50
+  });
+
+  wildAnimals.splice(index, 1);
+
+  try {
+    const res = await fetch('/api/kingdom/hunt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: selfKingdom.username, animalType: animal.type })
+    });
+    const data = await res.json();
+    if (data.success) {
+      selfKingdom = data.user;
+      updateHud(selfKingdom);
+
+      floatingEffects.push({
+        text: data.rewardText,
+        x: animal.x,
+        y: animal.y - 45,
+        color: '#34d399',
+        life: 75
+      });
+    }
+  } catch (err) {}
+}
+
 function renderLoop() {
   frameCount++;
   const cycle = getDayNightCycle();
@@ -977,6 +1101,9 @@ function renderLoop() {
 
     // Aldeões Caminhando pela Vila
     updateAndRenderVillagers(startX, startY);
+
+    // Animais Selvagens Caminhando pelo Mapa (Cervos 🦌, Javalis 🐗, Lobos 🐺)
+    updateAndRenderWildAnimals(startX, startY);
 
     // Efeitos Flutuantes (+10 Ouro)
     for (let i = floatingEffects.length - 1; i >= 0; i--) {

@@ -55,6 +55,8 @@ class Database {
       wood: 500,
       maxWood: 5000,
       gems: 50,
+      meat: 50,
+      leather: 20,
       trophies: 100,
       isVip: false,
       shieldUntil: null, // Escudo de Paz contra saques
@@ -124,6 +126,8 @@ class Database {
     if (!user.maxGold) user.maxGold = 5000;
     if (!user.maxWood) user.maxWood = 5000;
     if (!user.gems) user.gems = 50;
+    if (user.meat === undefined || user.meat === null) user.meat = 50;
+    if (user.leather === undefined || user.leather === null) user.leather = 20;
     if (!user.trophies) user.trophies = 100;
     if (!user.spells) user.spells = { meteor: 0, heal: 0 };
     if (!user.quests) {
@@ -463,6 +467,47 @@ class Database {
 
   getPayment(paymentId) {
     return this.data.payments[paymentId] || null;
+  }
+
+  // --- SISTEMA DE CAÇA DE ANIMAIS SELVAGENS ---
+  huntAnimal(username, animalType) {
+    const cleanUser = username.toLowerCase();
+    const user = this.getUser(cleanUser);
+    if (!user) throw new Error('Usuário não encontrado.');
+
+    if (user.meat === undefined) user.meat = 50;
+    if (user.leather === undefined) user.leather = 20;
+
+    let rewardText = '';
+    let rewards = {};
+
+    if (animalType === 'deer') {
+      const meatEarned = 15 + Math.floor(Math.random() * 10);
+      const goldEarned = 50 + Math.floor(Math.random() * 50);
+      user.meat += meatEarned;
+      user.gold = Math.min(user.maxGold, user.gold + goldEarned);
+      rewards = { meat: meatEarned, gold: goldEarned };
+      rewardText = `+${meatEarned} 🥩 Carne | +${goldEarned} 🪙 Ouro`;
+    } else if (animalType === 'boar') {
+      const meatEarned = 25 + Math.floor(Math.random() * 15);
+      const leatherEarned = 10 + Math.floor(Math.random() * 10);
+      user.meat += meatEarned;
+      user.leather += leatherEarned;
+      rewards = { meat: meatEarned, leather: leatherEarned };
+      rewardText = `+${meatEarned} 🥩 Carne | +${leatherEarned} 📜 Couro`;
+    } else if (animalType === 'wolf') {
+      const leatherEarned = 20 + Math.floor(Math.random() * 10);
+      const gemsEarned = 2 + Math.floor(Math.random() * 3);
+      user.leather += leatherEarned;
+      user.gems += gemsEarned;
+      rewards = { leather: leatherEarned, gems: gemsEarned };
+      rewardText = `+${leatherEarned} 📜 Couro | +${gemsEarned} 💎 Gemas`;
+    } else {
+      throw new Error('Animal desconhecido.');
+    }
+
+    this.save();
+    return { user, rewardText, rewards };
   }
 
   // --- MISSÕES DIÁRIAS & PASSE DE BATALHA ---

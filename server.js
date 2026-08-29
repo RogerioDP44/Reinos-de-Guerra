@@ -139,6 +139,17 @@ app.get('/api/kingdom/list-enemies', (req, res) => {
   res.json(db.getKingdomList(username));
 });
 
+// --- ROTA DE CAÇA DE ANIMAIS SELVAGENS ---
+app.post('/api/kingdom/hunt', (req, res) => {
+  try {
+    const { username, animalType } = req.body;
+    const result = db.huntAnimal(username, animalType);
+    res.json({ success: true, rewardText: result.rewardText, rewards: result.rewards, user: sanitizeUser(result.user) });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // --- ROTAS DE CLÃS & ALIANÇAS (GUILDAS) ---
 app.post('/api/clan/create', (req, res) => {
   try {

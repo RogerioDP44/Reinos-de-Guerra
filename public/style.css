@@ -303,10 +303,11 @@ body, html {
   box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
 }
 
-.btn-train { background: linear-gradient(135deg, #2563eb, #1e40af); }
-.btn-upgrade { background: linear-gradient(135deg, #d97706, #854d0e); }
-.btn-clan { background: linear-gradient(135deg, #9333ea, #6b21a8); }
-.btn-shield { background: linear-gradient(135deg, #0284c7, #0369a1); }
+.btn-train { background: linear-gradient(135deg, #2563eb, #1e40af); color: #fff !important; }
+.btn-upgrade { background: linear-gradient(135deg, #d97706, #854d0e); color: #fff !important; }
+.btn-clan { background: linear-gradient(135deg, #7e22ce, #581c87) !important; color: #ffffff !important; border: 1px solid #c084fc !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+.btn-clan:hover { background: linear-gradient(135deg, #9333ea, #6b21a8) !important; box-shadow: 0 6px 20px rgba(126, 34, 206, 0.6); }
+.btn-shield { background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff !important; }
 
 .hud-actions-menu {
   position: absolute;
