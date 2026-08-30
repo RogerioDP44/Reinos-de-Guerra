@@ -58,6 +58,12 @@ class Database {
       meat: 50,
       leather: 20,
       trophies: 100,
+      hp: 20,
+      maxHp: 20,
+      level: 1,
+      xp: 0,
+      maxXp: 50,
+      damage: 1,
       isVip: false,
       shieldUntil: null, // Escudo de Paz contra saques
       clan: null,

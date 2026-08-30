@@ -505,21 +505,21 @@
       "username": "rogerio",
       "kingdomName": "Império de Rogerio",
       "passwordHash": "$2a$10$.v/Mbs5OXwPQ2/jBPM9t5uJU1pLPyuxx7ThWhee.lfKIkeF590Jtq",
-      "gold": 9570,
-      "maxGold": 15000,
-      "wood": 10078,
-      "maxWood": 15000,
-      "gems": 170,
+      "gold": 16676,
+      "maxGold": 25000,
+      "wood": 15618,
+      "maxWood": 25000,
+      "gems": 215,
       "trophies": 160,
       "isVip": false,
       "shieldUntil": "2026-08-30T05:00:53.412Z",
-      "clan": null,
+      "clan": "clan_1788096859995",
       "role": "player",
       "buildings": [
         {
           "id": "townhall",
           "name": "Centro da Vila",
-          "level": 3,
+          "level": 5,
           "icon": "🏰",
           "x": 2,
           "y": 2,
@@ -529,7 +529,7 @@
         {
           "id": "goldmine",
           "name": "Mina de Ouro",
-          "level": 2,
+          "level": 4,
           "icon": "⛏️",
           "x": 1,
           "y": 1,
@@ -539,7 +539,7 @@
         {
           "id": "sawmill",
           "name": "Serraria",
-          "level": 2,
+          "level": 3,
           "icon": "🪓",
           "x": 3,
           "y": 1,
@@ -549,7 +549,7 @@
         {
           "id": "barracks",
           "name": "Quartel de Tropas",
-          "level": 2,
+          "level": 3,
           "icon": "⚔️",
           "x": 1,
           "y": 3,
@@ -559,23 +559,100 @@
         {
           "id": "tower",
           "name": "Torre de Defesa",
-          "level": 2,
+          "level": 3,
           "icon": "🏹",
           "x": 3,
           "y": 3,
           "isUpgrading": false,
           "finishTime": null
+        },
+        {
+          "id": "wall",
+          "name": "Muralhas de Pedra",
+          "level": 2,
+          "icon": "🧱",
+          "x": 2,
+          "y": 4,
+          "isUpgrading": false,
+          "finishTime": null,
+          "reqLevel": 2
+        },
+        {
+          "id": "alchemy",
+          "name": "Academia de Alquimia",
+          "level": 4,
+          "icon": "🧪",
+          "x": 0,
+          "y": 2,
+          "isUpgrading": true,
+          "finishTime": 1788101425682,
+          "reqLevel": 3
+        },
+        {
+          "id": "gemmine",
+          "name": "Mina de Gemas",
+          "level": 2,
+          "icon": "💎",
+          "x": 4,
+          "y": 2,
+          "isUpgrading": false,
+          "finishTime": null,
+          "reqLevel": 4
         }
       ],
       "army": {
-        "warrior": 13,
-        "archer": 5,
-        "wizard": 2,
-        "dragon": 3
+        "warrior": 14,
+        "archer": 6,
+        "wizard": 3,
+        "dragon": 5
       },
       "battleLogs": [],
-      "lastResourceUpdate": 1788024207546,
-      "createdAt": "2026-08-29T17:00:24.402Z"
+      "lastResourceUpdate": 1788101402236,
+      "createdAt": "2026-08-29T17:00:24.402Z",
+      "meat": 2194,
+      "leather": 1777,
+      "spells": {
+        "meteor": 0,
+        "heal": 0
+      },
+      "quests": [
+        {
+          "id": "quest_upgrade",
+          "title": "🔨 Mestre Construtor",
+          "desc": "Inicie 1 melhoria de edifício",
+          "rewardGold": 300,
+          "rewardGems": 10,
+          "rewardXp": 50,
+          "isCompleted": true,
+          "isClaimed": false
+        },
+        {
+          "id": "quest_train",
+          "title": "🏹 Treinador de Tropas",
+          "desc": "Treine pelo menos 1 nova tropa no Quartel",
+          "rewardGold": 250,
+          "rewardWood": 250,
+          "rewardXp": 50,
+          "isCompleted": true,
+          "isClaimed": false
+        },
+        {
+          "id": "quest_attack",
+          "title": "⚔️ Conquistador de Reinos",
+          "desc": "Marche para a guerra e realize 1 ataque",
+          "rewardGold": 500,
+          "rewardGems": 15,
+          "rewardXp": 100,
+          "isCompleted": false,
+          "isClaimed": false
+        }
+      ],
+      "battlePass": {
+        "level": 1,
+        "xp": 0,
+        "maxXp": 100,
+        "claimedLevels": []
+      }
     }
   },
   "payments": {
@@ -610,6 +687,26 @@
       "gems": 150,
       "status": "approved",
       "createdAt": "2026-08-29T17:01:06.320Z"
+    }
+  },
+  "clans": {
+    "clan_1788096859995": {
+      "id": "clan_1788096859995",
+      "name": "Grande Rei",
+      "tag": "GRAN",
+      "description": "Grand",
+      "leader": "rogerio",
+      "members": [
+        "rogerio"
+      ],
+      "donatedArmy": {
+        "warrior": 0,
+        "archer": 0,
+        "wizard": 0,
+        "dragon": 0
+      },
+      "chat": [],
+      "createdAt": "2026-08-30T13:34:19.995Z"
     }
   }
 }

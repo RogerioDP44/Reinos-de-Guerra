@@ -888,3 +888,75 @@ body, html {
 }
 
 .hidden { display: none !important; }
+
+/* Controles Mobile */
+.mobile-controls {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+  pointer-events: none; /* Deixa clicar através se não for nos botões */
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+@media (max-width: 800px) {
+  .mobile-controls {
+    display: flex;
+  }
+}
+
+.dpad {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  pointer-events: auto;
+}
+
+.dpad-btn {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.dpad-btn:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dpad-btn.up { top: 0; left: 40px; }
+.dpad-btn.down { bottom: 0; left: 40px; }
+.dpad-btn.left { top: 40px; left: 0; }
+.dpad-btn.right { top: 40px; right: 0; }
+
+.btn-action-mobile {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fbbf24, #d97706);
+  border: 2px solid #fff;
+  color: #000;
+  font-weight: bold;
+  pointer-events: auto;
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.6);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.btn-action-mobile:active {
+  transform: scale(0.9);
+}

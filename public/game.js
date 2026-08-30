@@ -12,11 +12,167 @@ let cameraOffset = { x: 0, y: 0 };
 let isDragging = false;
 let dragStart = { x: 0, y: 0 };
 
+// Estado do Multiplayer & Controles WASD
+let otherPlayers = {};
+const keys = { w: false, a: false, s: false, d: false, arrowup: false, arrowdown: false, arrowleft: false, arrowright: false };
+
+window.addEventListener('keydown', (e) => {
+  const key = e.key.toLowerCase();
+  if (keys.hasOwnProperty(key)) keys[key] = true;
+  
+  if (key === ' ' || e.code === 'Space') {
+    // Tenta atacar a entidade mais próxima
+    if (hero) {
+      let closest = null;
+      let minDist = 50; // Alcance do ataque
+      
+      // Procura em wildAnimals
+      wildAnimals.forEach(a => {
+        const d = Math.hypot(a.x - hero.x, a.y - hero.y);
+        if (d < minDist) { minDist = d; closest = a; }
+      });
+      
+      // Procura em resourceNodes
+      resourceNodes.forEach(r => {
+        const d = Math.hypot(r.x - hero.x, r.y - hero.y);
+        if (d < minDist) { minDist = d; closest = r; }
+      });
+      
+      if (closest) {
+        hero.targetEntity = closest;
+        hero.weapon = closest.type === 'tree' ? '🪓' : closest.type === 'rock' ? '⛏️' : '⚔️';
+        hero.state = 'action';
+        performHeroAction(); // Ataca a entidade imediatamente
+      }
+    }
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  const key = e.key.toLowerCase();
+  if (keys.hasOwnProperty(key)) keys[key] = false;
+});
+
 // Efeitos Visuais Flutuantes
 const floatingEffects = [];
 
 // Sintetizador de Som (Web Audio API)
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+// Sistema de Música Ambiente Dinâmica
+const MusicManager = {
+  tracks: {
+    kingdom: new Audio('/assets/music/kingdom.mp3'),
+    forest: new Audio('/assets/music/forest.mp3'),
+    city: new Audio('/assets/music/city.mp3')
+  },
+  currentScene: null,
+  isMuted: true, // Começa mutado por padrão (autoplay policy)
+  
+  init() {
+    Object.values(this.tracks).forEach(track => {
+      track.loop = true;
+      track.volume = 0; // Fade in depois
+    });
+  },
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    if (this.isMuted) {
+      if (this.currentScene) this.tracks[this.currentScene].pause();
+    } else {
+      if (this.currentScene) this.tracks[this.currentScene].play();
+    }
+    return this.isMuted;
+  },
+
+  updateScene(heroX, heroY) {
+    if (this.isMuted) return;
+
+    // Lógica para definir a cena atual baseada na posição do herói
+    // Centro do mapa (Reino) é por volta de x:200, y:200
+    const distToCenter = Math.hypot(heroX - 200, heroY - 200);
+    
+    let newScene = 'kingdom';
+    if (distToCenter > 1500) {
+      newScene = 'city'; // Muito longe (Cidade Perdida)
+    } else if (distToCenter > 600) {
+      newScene = 'forest'; // Floresta
+    }
+
+    if (newScene !== this.currentScene) {
+      this.crossfade(this.currentScene, newScene);
+      this.currentScene = newScene;
+    }
+  },
+
+  crossfade(oldScene, newScene) {
+    if (oldScene && this.tracks[oldScene]) {
+      const oldTrack = this.tracks[oldScene];
+      // Simple fade out
+      let vol = oldTrack.volume;
+      const fadeOut = setInterval(() => {
+        vol -= 0.05;
+        if (vol <= 0) {
+          oldTrack.volume = 0;
+          oldTrack.pause();
+          clearInterval(fadeOut);
+        } else {
+          oldTrack.volume = vol;
+        }
+      }, 100);
+    }
+
+    if (newScene && this.tracks[newScene]) {
+      const newTrack = this.tracks[newScene];
+      newTrack.play().catch(e => console.log('Autoplay bloqueado:', e));
+      // Simple fade in
+      let vol = 0;
+      newTrack.volume = 0;
+      const fadeIn = setInterval(() => {
+        vol += 0.05;
+        if (vol >= 0.4) {
+          newTrack.volume = 0.4;
+          clearInterval(fadeIn);
+        } else {
+          newTrack.volume = vol;
+        }
+      }, 100);
+    }
+  }
+};
+MusicManager.init();
+
+// Sistema de Gerenciamento de Assets Visuais (Imagens Modernas)
+const AssetManager = {
+  images: {},
+  loaded: 0,
+  total: 0,
+  
+  load(key, src) {
+    this.total++;
+    const img = new Image();
+    img.src = src;
+    img.onload = () => this.loaded++;
+    this.images[key] = img;
+  },
+  
+  isReady() {
+    return this.loaded === this.total && this.total > 0;
+  }
+};
+
+AssetManager.load('grass', '/assets/images/grass.png');
+AssetManager.load('hero', '/assets/images/hero.png');
+AssetManager.load('wolf', '/assets/images/wolf.png');
+
+function toggleMusic() {
+  const isMuted = MusicManager.toggleMute();
+  const btn = document.getElementById('btn-music-toggle');
+  if (btn) {
+    btn.innerText = isMuted ? '🔇' : '🔊';
+  }
+}
 
 function playSound(type) {
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -173,15 +329,15 @@ function zoomOutCamera() {
 
 function setupCameraDrag() {
   // Mouse (Desktop)
+  // Mouse (Desktop) - Desabilitado o drag manual, câmera segue o player
   canvas.addEventListener('mousedown', (e) => {
     isDragging = true;
-    dragStart = { x: e.clientX - cameraOffset.x, y: e.clientY - cameraOffset.y };
+    dragStart = { x: e.clientX, y: e.clientY };
   });
 
   window.addEventListener('mousemove', (e) => {
     if (isDragging) {
-      cameraOffset.x = e.clientX - dragStart.x;
-      cameraOffset.y = e.clientY - dragStart.y;
+      // Podemos deixar vazio, a câmera vai seguir o hero automaticamente no renderLoop
     }
   });
 
@@ -201,14 +357,13 @@ function setupCameraDrag() {
   canvas.addEventListener('touchstart', (e) => {
     if (e.touches.length === 1) {
       isDragging = true;
-      dragStart = { x: e.touches[0].clientX - cameraOffset.x, y: e.touches[0].clientY - cameraOffset.y };
+      dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
   }, { passive: true });
 
   window.addEventListener('touchmove', (e) => {
     if (isDragging && e.touches.length === 1) {
-      cameraOffset.x = e.touches[0].clientX - dragStart.x;
-      cameraOffset.y = e.touches[0].clientY - dragStart.y;
+      // Movimento manual desabilitado para focar no hero
     }
   }, { passive: true });
 
@@ -230,40 +385,84 @@ function renderMinimap() {
   mCtx.strokeStyle = 'rgba(255,255,255,0.08)';
   mCtx.strokeRect(0, 0, mW, mH);
 
-  const worldWidth = 1200;
-  const worldHeight = 900;
   const startX = canvas.width / 2 - 200;
   const startY = canvas.height / 2 - 150;
 
-  selfKingdom.buildings.forEach(b => {
-    const bx = (b.x * 130) + 150;
-    const by = (b.y * 110) + 100;
-    const mx = (bx / worldWidth) * mW;
-    const my = (by / worldHeight) * mH;
+  // Viewport do minimapa (em coordenadas do mundo relativas ao startX/startY)
+  const mapViewWidth = 2400;
+  const mapViewHeight = 1800;
+  const mapOffsetX = -1000; // Começa 1000 pixels à esquerda do startX
+  const mapOffsetY = -700;
 
+  function toMinimapX(worldX) {
+    return (((worldX - startX) - mapOffsetX) / mapViewWidth) * mW;
+  }
+  function toMinimapY(worldY) {
+    return (((worldY - startY) - mapOffsetY) / mapViewHeight) * mH;
+  }
+
+  selfKingdom.buildings.forEach(b => {
+    const worldX = startX + (b.x * 130);
+    const worldY = startY + (b.y * 110);
     mCtx.fillStyle = b.id === 'townhall' ? '#fbbf24' : '#38bdf8';
-    mCtx.fillRect(mx - 3, my - 3, 6, 6);
+    mCtx.fillRect(toMinimapX(worldX) - 3, toMinimapY(worldY) - 3, 6, 6);
   });
 
   resourceNodes.forEach(node => {
-    const mx = ((node.x - startX + 200) / worldWidth) * mW;
-    const my = ((node.y - startY + 150) / worldHeight) * mH;
     mCtx.fillStyle = node.type === 'tree' ? '#22c55e' : '#94a3b8';
-    mCtx.fillRect(mx - 1.5, my - 1.5, 3, 3);
+    mCtx.fillRect(toMinimapX(node.x) - 1.5, toMinimapY(node.y) - 1.5, 3, 3);
   });
 
   wildAnimals.forEach(a => {
-    const mx = ((a.x - startX + 200) / worldWidth) * mW;
-    const my = ((a.y - startY + 150) / worldHeight) * mH;
-    mCtx.fillStyle = '#ef4444';
-    mCtx.fillRect(mx - 1.5, my - 1.5, 3, 3);
+    if (a.type === 'boss_bear') {
+      mCtx.fillStyle = '#ff0000';
+      mCtx.beginPath();
+      mCtx.arc(toMinimapX(a.x), toMinimapY(a.y), 4, 0, Math.PI * 2);
+      mCtx.fill();
+      mCtx.strokeStyle = `rgba(255, 0, 0, ${Math.abs(Math.sin(frameCount * 0.1))})`;
+      mCtx.lineWidth = 2;
+      mCtx.beginPath();
+      mCtx.arc(toMinimapX(a.x), toMinimapY(a.y), 6 + Math.abs(Math.sin(frameCount * 0.1)) * 4, 0, Math.PI * 2);
+      mCtx.stroke();
+    } else {
+      mCtx.fillStyle = '#ef4444';
+      mCtx.fillRect(toMinimapX(a.x) - 1.5, toMinimapY(a.y) - 1.5, 3, 3);
+    }
   });
 
-  const camMx = ((-cameraOffset.x + 200) / worldWidth) * mW;
-  const camMy = ((-cameraOffset.y + 150) / worldHeight) * mH;
-  mCtx.strokeStyle = '#ffffff';
-  mCtx.lineWidth = 1.5;
-  mCtx.strokeRect(camMx - 10, camMy - 8, 24, 16);
+  // Câmera
+  const camWorldX = (-cameraOffset.x) / cameraZoom;
+  const camWorldY = (-cameraOffset.y) / cameraZoom;
+  const camWorldW = canvas.width / cameraZoom;
+  const camWorldH = canvas.height / cameraZoom;
+  
+  mCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+  mCtx.lineWidth = 1;
+  mCtx.strokeRect(
+    toMinimapX(camWorldX),
+    toMinimapY(camWorldY),
+    (camWorldW / mapViewWidth) * mW,
+    (camWorldH / mapViewHeight) * mH
+  );
+
+  if (hero) {
+    mCtx.fillStyle = '#38bdf8';
+    mCtx.beginPath();
+    mCtx.arc(toMinimapX(hero.x), toMinimapY(hero.y), 4, 0, Math.PI * 2);
+    mCtx.fill();
+    mCtx.strokeStyle = '#ffffff';
+    mCtx.lineWidth = 1;
+    mCtx.stroke();
+  }
+
+  for (const [uname, pData] of Object.entries(otherPlayers)) {
+    if (uname !== selfKingdom.username) {
+      mCtx.fillStyle = '#c084fc';
+      mCtx.beginPath();
+      mCtx.arc(toMinimapX(pData.x), toMinimapY(pData.y), 2.5, 0, Math.PI * 2);
+      mCtx.fill();
+    }
+  }
 }
 
 function handleMinimapClick(e) {
@@ -344,6 +543,10 @@ function setupSocket() {
   socket.on('chat_message', (data) => {
     addChatMessage(data.sender, data.text, data.type, data.isVip, data.role);
   });
+
+  socket.on('players_update', (playersData) => {
+    otherPlayers = playersData;
+  });
 }
 
 function switchAuthTab(tab) {
@@ -422,6 +625,12 @@ function updateHud(k) {
   document.getElementById('hud-wood').innerText = `${Math.floor(k.wood)} / ${k.maxWood}`;
   if (document.getElementById('hud-meat')) document.getElementById('hud-meat').innerText = k.meat || 0;
   if (document.getElementById('hud-leather')) document.getElementById('hud-leather').innerText = k.leather || 0;
+  
+  if (hero) {
+    if (document.getElementById('hud-level')) document.getElementById('hud-level').innerText = hero.level || 1;
+    if (document.getElementById('hud-xp')) document.getElementById('hud-xp').innerText = `${hero.xp || 0} / ${hero.maxXp || 50}`;
+  }
+
   document.getElementById('hud-gems').innerText = k.gems;
   document.getElementById('hud-trophies').innerText = k.trophies;
 
@@ -879,7 +1088,7 @@ let villagers = [];
 let smokeParticles = [];
 
 function getDayNightCycle() {
-  const cycleSeconds = 120;
+  const cycleSeconds = 480;
   const progress = (Date.now() / 1000 % cycleSeconds) / cycleSeconds;
 
   let shadowColor = 'rgba(0, 0, 0, 0)';
@@ -1047,7 +1256,15 @@ function initHero(startX, startY) {
       speed: 3.0,
       state: 'idle',
       targetEntity: null,
-      strikeTimer: 0
+      strikeTimer: 0,
+      attackCooldown: 0,
+      direction: 'down',
+      hp: selfKingdom.hp !== undefined ? selfKingdom.hp : 20,
+      maxHp: selfKingdom.maxHp || 20,
+      level: selfKingdom.level || 1,
+      xp: selfKingdom.xp || 0,
+      maxXp: selfKingdom.maxXp || 50,
+      damage: selfKingdom.damage || 1
     };
   }
 }
@@ -1056,21 +1273,61 @@ function updateAndRenderHero(startX, startY) {
   initHero(startX, startY);
   if (!hero) return;
 
-  // Lógica de Movimentação do Herói até o Ponto Alvo ou Recurso
-  const dx = hero.targetX - hero.x;
-  const dy = hero.targetY - hero.y;
-  const dist = Math.hypot(dx, dy);
+  if (hero.attackCooldown > 0) hero.attackCooldown--;
 
-  if (dist > 12) {
-    hero.x += (dx / dist) * hero.speed;
-    hero.y += (dy / dist) * hero.speed;
+  // Auto-heal
+  if (frameCount % 120 === 0 && hero.hp > 0 && hero.hp < hero.maxHp) {
+    hero.hp++;
+  }
+
+  // Lógica de Movimentação do Herói com Teclado (WASD) ou Clique (targetX)
+  let moved = false;
+  let prevX = hero.x;
+  let prevY = hero.y;
+
+  if (keys.w || keys.arrowup) { hero.y -= hero.speed; moved = true; hero.direction = 'up'; }
+  if (keys.s || keys.arrowdown) { hero.y += hero.speed; moved = true; hero.direction = 'down'; }
+  if (keys.a || keys.arrowleft) { hero.x -= hero.speed; moved = true; hero.direction = 'left'; }
+  if (keys.d || keys.arrowright) { hero.x += hero.speed; moved = true; hero.direction = 'right'; }
+
+  // Fallback para clique (arrastar até o alvo se não usar teclado)
+  if (!moved) {
+    const dx = hero.targetX - hero.x;
+    const dy = hero.targetY - hero.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 12) {
+      hero.x += (dx / dist) * hero.speed;
+      hero.y += (dy / dist) * hero.speed;
+      moved = true;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        hero.direction = dx > 0 ? 'right' : 'left';
+      } else {
+        hero.direction = dy > 0 ? 'down' : 'up';
+      }
+    }
+  } else {
+    // Se usou teclado, atualiza o target para onde está para não voltar
+    hero.targetX = hero.x;
+    hero.targetY = hero.y;
+  }
+
+  if (moved) {
     hero.state = 'walking';
+    hero.targetEntity = null;
+    if (socket) socket.emit('player_move', { x: hero.x, y: hero.y, direction: hero.direction, isMoving: true });
   } else if (hero.targetEntity) {
     hero.state = 'action';
     performHeroAction();
   } else {
     hero.state = 'idle';
+    if (prevX !== hero.x || prevY !== hero.y || hero.wasMoving) {
+      if (socket) socket.emit('player_move', { x: hero.x, y: hero.y, direction: hero.direction, isMoving: false });
+    }
   }
+  hero.wasMoving = moved;
+  
+  // Atualizar a música ambiente de acordo com a posição
+  MusicManager.updateScene(hero.x, hero.y);
 
   // Animação de Passos e Golpes
   const bounce = hero.state === 'walking' ? Math.abs(Math.sin(frameCount * 0.25)) * 6 : 0;
@@ -1078,10 +1335,28 @@ function updateAndRenderHero(startX, startY) {
 
   ctx.save();
 
-  // Renderizar Ícone do Herói
-  ctx.font = '36px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(hero.icon, hero.x + strikeOffset, hero.y - bounce);
+  // Renderizar Ícone/Sprite do Herói
+  if (AssetManager.isReady() && AssetManager.images['hero']) {
+    const img = AssetManager.images['hero'];
+    ctx.save();
+    ctx.translate(hero.x + strikeOffset, hero.y - bounce - 32); // Centro do sprite
+    
+    // Gira o sprite dependendo da direção
+    if (hero.direction === 'left') {
+      ctx.rotate(-Math.PI / 2);
+    } else if (hero.direction === 'right') {
+      ctx.rotate(Math.PI / 2);
+    } else if (hero.direction === 'up') {
+      ctx.rotate(Math.PI);
+    } // 'down' é a rotação padrão (0)
+
+    ctx.drawImage(img, -32, -32, 64, 64);
+    ctx.restore();
+  } else {
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(hero.icon, hero.x + strikeOffset, hero.y - bounce);
+  }
 
   // Renderizar Arma Atual ao Golpear (Espada 🗡️ / Machado 🪓 / Picareta ⛏️)
   if (hero.state === 'action') {
@@ -1100,42 +1375,120 @@ function updateAndRenderHero(startX, startY) {
   ctx.font = 'bold 11px Outfit, sans-serif';
   ctx.fillText(`👑 ${hero.name}`, hero.x, hero.y - 44 - bounce);
 
+  // Barra de HP do Herói
+  if (hero.hp < hero.maxHp) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(hero.x - 20, hero.y - 55 - bounce, 40, 6);
+    ctx.fillStyle = '#22c55e'; // Verde para vida
+    ctx.fillRect(hero.x - 19, hero.y - 54 - bounce, (Math.max(0, hero.hp) / hero.maxHp) * 38, 4);
+  }
+
   ctx.restore();
+
+  // Morte do Herói
+  if (hero.hp <= 0) {
+    hero.hp = hero.maxHp;
+    hero.x = startX + 200;
+    hero.y = startY + 200;
+    hero.targetX = hero.x;
+    hero.targetY = hero.y;
+    hero.state = 'idle';
+    hero.targetEntity = null;
+    hero.attackCooldown = 0;
+    
+    // Penalidade de morte
+    if (selfKingdom) {
+      selfKingdom.wood = Math.max(0, Math.floor((selfKingdom.wood || 0) * 0.9));
+      selfKingdom.gold = Math.max(0, Math.floor((selfKingdom.gold || 0) * 0.9));
+      updateHud(selfKingdom);
+      floatingEffects.push({ text: '💀 MORREU! -10% Recursos', x: hero.x, y: hero.y - 80, color: '#ef4444', life: 80 });
+      syncHeroStats();
+    }
+  }
+}
+
+async function syncHeroStats() {
+  if (!hero || !selfKingdom) return;
+  try {
+    const res = await fetch('/api/kingdom/sync-hero', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: selfKingdom.username,
+        hp: hero.hp, maxHp: hero.maxHp,
+        level: hero.level, xp: hero.xp, maxXp: hero.maxXp,
+        damage: hero.damage
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      selfKingdom.hp = hero.hp;
+      selfKingdom.maxHp = hero.maxHp;
+      selfKingdom.level = hero.level;
+      selfKingdom.xp = hero.xp;
+      selfKingdom.maxXp = hero.maxXp;
+      selfKingdom.damage = hero.damage;
+    }
+  } catch (err) {}
+}
+
+function gainXp(amount) {
+  if (!hero) return;
+  hero.xp += amount;
+  floatingEffects.push({ text: `+${amount} XP`, x: hero.x, y: hero.y - 60, color: '#a855f7', life: 40 });
+  
+  if (hero.xp >= hero.maxXp) {
+    hero.level++;
+    hero.xp -= hero.maxXp;
+    hero.maxXp = Math.floor(hero.maxXp * 1.5);
+    hero.maxHp += 5;
+    hero.hp = hero.maxHp;
+    hero.damage += 1;
+    playSound('hammer');
+    floatingEffects.push({ text: '🌟 LEVEL UP!', x: hero.x, y: hero.y - 80, color: '#fbbf24', life: 80 });
+  }
+  updateHud(selfKingdom);
+  syncHeroStats();
 }
 
 function performHeroAction() {
   if (!hero || !hero.targetEntity) return;
+  if (hero.attackCooldown > 0) return; // Cooldown ativo (espera 0.3s entre golpes)
 
+  hero.attackCooldown = 20; // 20 frames
   const target = hero.targetEntity;
-  hero.strikeTimer++;
 
-  // A cada 20 frames (~0.35s), o Herói desfere um golpe com som e efeito visual!
-  if (hero.strikeTimer % 20 === 0) {
-    playSound('hammer');
+  playSound('hammer');
 
-    const strikeText = target.kind === 'tree' ? '🪓 *BAQUE!*' : target.kind === 'rock' ? '⛏️ *CLANG!*' : '⚔️ *GOLPE!*';
-    floatingEffects.push({
-      text: strikeText,
-      x: target.x + (Math.random() * 12 - 6),
-      y: target.y - 18,
-      color: target.kind === 'animal' ? '#ef4444' : '#f59e0b',
-      life: 25
-    });
+  const strikeText = target.kind === 'tree' ? '🪓 *BAQUE!*' : target.kind === 'rock' ? '⛏️ *CLANG!*' : '⚔️ *GOLPE!*';
+  floatingEffects.push({
+    text: strikeText,
+    x: target.x + (Math.random() * 12 - 6),
+    y: target.y - 18,
+    color: target.kind === 'animal' ? '#ef4444' : '#f59e0b',
+    life: 25
+  });
 
-    target.hp -= 1;
+  // O dano aplicado cresce com o nível
+  target.hp -= hero.damage;
 
-    // Se o recurso ou animal foi destruído/abatido:
-    if (target.hp <= 0) {
-      if (target.kind === 'animal') {
-        const idx = wildAnimals.findIndex(a => a.id === target.id);
-        if (idx !== -1) huntWildAnimal(target, idx);
-      } else if (target.kind === 'tree' || target.kind === 'rock') {
-        const idx = resourceNodes.findIndex(n => n.id === target.id);
-        if (idx !== -1) gatherNode(target, idx);
+  // Se o recurso ou animal foi destruído/abatido:
+  if (target.hp <= 0) {
+    if (target.kind === 'animal') {
+      const idx = wildAnimals.findIndex(a => a.id === target.id);
+      if (idx !== -1) {
+        huntWildAnimal(target, idx);
+        gainXp(target.xpReward || 15);
       }
-      hero.targetEntity = null;
-      hero.state = 'idle';
+    } else if (target.kind === 'tree' || target.kind === 'rock') {
+      const idx = resourceNodes.findIndex(n => n.id === target.id);
+      if (idx !== -1) {
+        gatherNode(target, idx);
+        gainXp(5);
+      }
     }
+    hero.targetEntity = null;
+    hero.state = 'idle';
   }
 }
 
@@ -1190,10 +1543,14 @@ function updateAndRenderResourceNodes(startX, startY) {
 function spawnWildAnimals(startX, startY) {
   if (wildAnimals.length < 5 && selfKingdom) {
     const types = [
-      { id: 'deer', icon: '🦌', name: 'Cervo Selvagem', maxHp: 3 },
-      { id: 'boar', icon: '🐗', name: 'Javali das Montanhas', maxHp: 4 },
-      { id: 'wolf', icon: '🐺', name: 'Lobo Feroz', maxHp: 4 }
+      { id: 'deer', icon: '🦌', name: 'Cervo Selvagem', maxHp: 3, xpReward: 10, speed: 0.8, damage: 1 },
+      { id: 'boar', icon: '🐗', name: 'Javali das Montanhas', maxHp: 4, xpReward: 15, speed: 0.9, damage: 2 },
+      { id: 'wolf', icon: '🐺', name: 'Lobo Feroz', maxHp: 4, xpReward: 20, speed: 1.0, damage: 2 }
     ];
+
+    if (Math.random() < 0.1) {
+      types.push({ id: 'boss_bear', icon: '🐻', name: 'Urso Pardo (Chefe)', maxHp: 20, xpReward: 100, speed: 1.2, damage: 4 });
+    }
 
     const typeObj = types[Math.floor(Math.random() * types.length)];
     const animal = {
@@ -1204,11 +1561,13 @@ function spawnWildAnimals(startX, startY) {
       name: typeObj.name,
       hp: typeObj.maxHp,
       maxHp: typeObj.maxHp,
+      xpReward: typeObj.xpReward || 10,
+      damage: typeObj.damage || 2,
       x: startX + (Math.random() * 600 - 100),
       y: startY + (Math.random() * 500 - 100),
       targetX: startX + (Math.random() * 600 - 100),
       targetY: startY + (Math.random() * 500 - 100),
-      speed: 0.5 + Math.random() * 0.4,
+      speed: typeObj.speed || (0.5 + Math.random() * 0.4),
       stepOffset: Math.random() * 10
     };
     wildAnimals.push(animal);
@@ -1221,26 +1580,64 @@ function updateAndRenderWildAnimals(startX, startY) {
   }
 
   wildAnimals.forEach(a => {
-    // Se não estiver sob ataque, anda normalmente pelo mapa
-    if (!hero || hero.targetEntity !== a) {
+    // Inicializa cooldown do animal se não existir
+    if (a.attackCooldown === undefined) a.attackCooldown = 0;
+    if (a.attackCooldown > 0) a.attackCooldown--;
+
+    // IA do Inimigo: Se tomou dano (hp < maxHp), persegue e ataca o herói
+    if (hero && a.hp < a.maxHp) {
+      a.targetX = hero.x;
+      a.targetY = hero.y;
+      
       const dx = a.targetX - a.x;
       const dy = a.targetY - a.y;
       const dist = Math.hypot(dx, dy);
 
-      if (dist < 10) {
-        a.targetX = startX + (Math.random() * 600 - 100);
-        a.targetY = startY + (Math.random() * 500 - 100);
+      // Se chegou muito perto, ataca!
+      if (dist < 30) {
+        if (a.attackCooldown <= 0) {
+          a.attackCooldown = 60; // 1 ataque por segundo (a 60fps)
+          hero.hp -= a.damage; // Dano do animal
+          // Efeito de sangue/dano no herói
+          floatingEffects.push({ text: `-${a.damage} HP`, x: hero.x + (Math.random()*20 - 10), y: hero.y - 30, color: '#ef4444', life: 30 });
+        }
       } else {
-        a.x += (dx / dist) * a.speed;
-        a.y += (dy / dist) * a.speed;
+        a.x += (dx / dist) * (a.speed * 1.5); // Corre um pouco mais rápido quando agressivo
+        a.y += (dy / dist) * (a.speed * 1.5);
+      }
+    } else {
+      // Se não estiver agressivo, anda normalmente pelo mapa aleatoriamente
+      if (!hero || hero.targetEntity !== a) {
+        const dx = a.targetX - a.x;
+        const dy = a.targetY - a.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < 10) {
+          a.targetX = startX + (Math.random() * 600 - 100);
+          a.targetY = startY + (Math.random() * 500 - 100);
+        } else {
+          a.x += (dx / dist) * a.speed;
+          a.y += (dy / dist) * a.speed;
+        }
       }
     }
 
     const bounce = Math.abs(Math.sin((frameCount + a.stepOffset) * 0.12)) * 5;
 
-    ctx.font = '32px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(a.icon, a.x, a.y - bounce);
+    if (a.type === 'boss_bear') {
+      ctx.font = '64px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(a.icon, a.x, a.y - bounce);
+    } else if (AssetManager.isReady() && AssetManager.images['wolf'] && (a.type === 'wolf' || a.type === 'boar' || a.type === 'deer')) {
+      const img = AssetManager.images['wolf'];
+      ctx.drawImage(img, a.x - 24, a.y - 48 - bounce, 48, 48);
+    } else {
+      ctx.font = '32px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(a.icon, a.x, a.y - bounce);
+    }
+
+
 
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
@@ -1310,34 +1707,7 @@ function setupCanvasHuntingClick() {
   });
 }
 
-function setupCanvasHuntingClick() {
-  canvas.addEventListener('click', (e) => {
-    if (!selfKingdom) return;
-    const rect = canvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left - cameraOffset.x;
-    const clickY = e.clientY - rect.top - cameraOffset.y;
 
-    // 1. Clique em Recursos Naturais (Árvores 🌲 / Rochas 🪨)
-    for (let i = resourceNodes.length - 1; i >= 0; i--) {
-      const node = resourceNodes[i];
-      const dist = Math.hypot(clickX - node.x, clickY - node.y);
-      if (dist < 40) {
-        gatherNode(node, i);
-        return;
-      }
-    }
-
-    // 2. Clique em Animais Selvagens (Cervos 🦌 / Javalis 🐗 / Lobos 🐺)
-    for (let i = wildAnimals.length - 1; i >= 0; i--) {
-      const a = wildAnimals[i];
-      const dist = Math.hypot(clickX - a.x, clickY - a.y);
-      if (dist < 38) {
-        huntWildAnimal(a, i);
-        return;
-      }
-    }
-  });
-}
 
 async function gatherNode(node, index) {
   if (!selfKingdom) return;
@@ -1429,11 +1799,24 @@ function renderLoop() {
   const cycle = getDayNightCycle();
 
   // Fundo do Terreno Imperial
-  ctx.fillStyle = cycle.bgGrassColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (AssetManager.isReady() && AssetManager.images['grass']) {
+    const pattern = ctx.createPattern(AssetManager.images['grass'], 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    ctx.fillStyle = cycle.bgGrassColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 
   ctx.save();
   ctx.scale(cameraZoom, cameraZoom);
+  
+  // A câmera segue o jogador (hero)
+  if (hero) {
+    cameraOffset.x = (canvas.width / 2 / cameraZoom) - hero.x;
+    cameraOffset.y = (canvas.height / 2 / cameraZoom) - hero.y;
+  }
+  
   ctx.translate(cameraOffset.x, cameraOffset.y);
 
   // Terreno e Grade do Reino
@@ -1490,6 +1873,41 @@ function renderLoop() {
         drawBuildingTorch(bx, by);
       }
 
+      // Tower Defense Logic
+      if (b.id === 'tower' && !isUnbuilt && frameCount % 120 === 0) {
+        let closestAnimal = null;
+        let minDist = 250;
+        wildAnimals.forEach(a => {
+          const dist = Math.hypot(a.x - bx, a.y - by);
+          if (dist < minDist && a.hp > 0) {
+            minDist = dist;
+            closestAnimal = a;
+          }
+        });
+        
+        if (closestAnimal) {
+          const dmg = b.level * 2;
+          closestAnimal.hp -= dmg;
+          floatingEffects.push({ text: `🏹 -${dmg}`, x: closestAnimal.x, y: closestAnimal.y - 20, color: '#ef4444', life: 40 });
+          
+          // Efeito de tiro rápido
+          ctx.beginPath();
+          ctx.moveTo(bx, by - 20);
+          ctx.lineTo(closestAnimal.x, closestAnimal.y);
+          ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          
+          if (closestAnimal.hp <= 0) {
+            const idx = wildAnimals.findIndex(a => a.id === closestAnimal.id);
+            if (idx !== -1) {
+              huntWildAnimal(closestAnimal, idx);
+              gainXp(closestAnimal.xpReward || 15);
+            }
+          }
+        }
+      }
+
       // Nome do Edifício e Nível
       ctx.fillStyle = isUnbuilt ? '#94a3b8' : '#ffffff';
       ctx.font = 'bold 12px Outfit, sans-serif';
@@ -1513,6 +1931,32 @@ function renderLoop() {
 
     // Personagem Herói Imperador Avatar
     updateAndRenderHero(startX, startY);
+
+    // Renderizar outros jogadores
+    for (const [uname, pData] of Object.entries(otherPlayers)) {
+      if (uname !== selfKingdom.username) { // Não renderiza o próprio jogador duas vezes
+        ctx.save();
+        const bounce = pData.isMoving ? Math.abs(Math.sin(frameCount * 0.25)) * 6 : 0;
+        
+        // Sombra
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(pData.x, pData.y, 14, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Ícone/Avatar
+        ctx.font = '36px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🤴', pData.x, pData.y - bounce);
+        
+        // Nome
+        ctx.fillStyle = pData.isVip ? '#fbbf24' : '#ffffff';
+        ctx.font = 'bold 11px Outfit, sans-serif';
+        ctx.fillText(`${pData.isVip ? '👑 ' : ''}${pData.kingdomName || uname}`, pData.x, pData.y - 44 - bounce);
+        
+        ctx.restore();
+      }
+    }
 
     // Fontes de Recursos Naturais (Árvores 🌲, Rochas de Ouro 🪨)
     updateAndRenderResourceNodes(startX, startY);

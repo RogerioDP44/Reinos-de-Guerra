@@ -61,6 +61,7 @@ function escapeHtml(str) {
 }
 
 const activeSockets = {}; // socketId -> username
+const activePlayers = {}; // username -> { x, y, direction, isMoving, kingdomName, isVip }
 
 // --- ROTAS DA API HTTP (PROTEGIDAS) ---
 
@@ -147,6 +148,28 @@ app.post('/api/kingdom/hunt', (req, res) => {
     res.json({ success: true, rewardText: result.rewardText, rewards: result.rewards, user: sanitizeUser(result.user) });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/kingdom/sync-hero', (req, res) => {
+  try {
+    const { username, hp, maxHp, level, xp, maxXp, damage } = req.body;
+    if (!username) return res.status(400).json({ success: false, message: 'Usuário não informado.' });
+    
+    const user = db.getUser(username);
+    if (!user) return res.status(404).json({ success: false, message: 'Reino não encontrado.' });
+    
+    if (hp !== undefined) user.hp = hp;
+    if (maxHp !== undefined) user.maxHp = maxHp;
+    if (level !== undefined) user.level = level;
+    if (xp !== undefined) user.xp = xp;
+    if (maxXp !== undefined) user.maxXp = maxXp;
+    if (damage !== undefined) user.damage = damage;
+    
+    db.save();
+    return res.json({ success: true, kingdom: user });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -335,6 +358,15 @@ io.on('connection', (socket) => {
     if (!user) return socket.emit('error_msg', 'Reino não encontrado.');
 
     activeSockets[socket.id] = user.username;
+    activePlayers[user.username] = {
+      x: 0, 
+      y: 0, 
+      direction: 'down', 
+      isMoving: false,
+      kingdomName: user.kingdomName,
+      isVip: user.isVip
+    };
+
     socket.emit('init_kingdom', sanitizeUser(user));
 
     io.emit('chat_message', {
@@ -342,6 +374,22 @@ io.on('connection', (socket) => {
       text: `🏰 O Imperador de ${user.kingdomName} entrou no império!`,
       type: 'system'
     });
+
+    // Envia estado inicial de todos os jogadores para quem acabou de entrar
+    io.emit('players_update', activePlayers);
+  });
+
+  socket.on('player_move', (data) => {
+    const username = activeSockets[socket.id];
+    if (username && activePlayers[username]) {
+      activePlayers[username].x = data.x;
+      activePlayers[username].y = data.y;
+      activePlayers[username].direction = data.direction;
+      activePlayers[username].isMoving = data.isMoving;
+      
+      // Transmite a nova posição para todos
+      io.emit('players_update', activePlayers);
+    }
   });
 
   socket.on('send_chat', (text) => {
@@ -361,6 +409,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    const username = activeSockets[socket.id];
+    if (username) {
+      delete activePlayers[username];
+      io.emit('players_update', activePlayers); // Atualiza os outros clientes
+    }
     delete activeSockets[socket.id];
   });
 });

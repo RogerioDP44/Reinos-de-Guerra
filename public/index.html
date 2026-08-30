@@ -118,6 +118,14 @@
         </div>
 
         <div class="res-item">
+          <span class="res-icon">🌟</span>
+          <div>
+            <div class="res-label">Nível <span id="hud-level">1</span></div>
+            <div id="hud-xp" class="res-val">0 / 50</div>
+          </div>
+        </div>
+
+        <div class="res-item">
           <span class="res-icon">🏆</span>
           <div>
             <div class="res-label">Troféus</div>
@@ -143,10 +151,22 @@
       <button class="btn-icon-hud" onclick="resetCameraCenter()" title="Centralizar na Vila">🏠</button>
       <button class="btn-icon-hud" onclick="zoomInCamera()" title="Aumentar Zoom (+)">🔍+</button>
       <button class="btn-icon-hud" onclick="zoomOutCamera()" title="Diminuir Zoom (-)">🔍-</button>
+      <button class="btn-icon-hud" id="btn-music-toggle" onclick="toggleMusic()" title="Música">🔇</button>
       <button class="btn-icon-hud" onclick="toggleQuestsModal()" title="Missões & Passe">📜</button>
       <button class="btn-icon-hud" onclick="toggleRankingModal()" title="Ranking">🏆</button>
       <button class="btn-icon-hud" onclick="toggleShopModal()" title="Loja PIX">💎</button>
       <button class="btn-icon-hud" onclick="logoutUser()" title="Sair da Conta">🚪</button>
+    </div>
+
+    <!-- CONTROLES MOBILE (ESCONDIDOS NO DESKTOP VIA CSS) -->
+    <div id="mobile-joystick" class="mobile-controls">
+      <div class="dpad">
+        <button class="dpad-btn up" onmousedown="keys['w']=true" onmouseup="keys['w']=false" ontouchstart="keys['w']=true; event.preventDefault()" ontouchend="keys['w']=false; event.preventDefault()">▲</button>
+        <button class="dpad-btn left" onmousedown="keys['a']=true" onmouseup="keys['a']=false" ontouchstart="keys['a']=true; event.preventDefault()" ontouchend="keys['a']=false; event.preventDefault()">◀</button>
+        <button class="dpad-btn right" onmousedown="keys['d']=true" onmouseup="keys['d']=false" ontouchstart="keys['d']=true; event.preventDefault()" ontouchend="keys['d']=false; event.preventDefault()">▶</button>
+        <button class="dpad-btn down" onmousedown="keys['s']=true" onmouseup="keys['s']=false" ontouchstart="keys['s']=true; event.preventDefault()" ontouchend="keys['s']=false; event.preventDefault()">▼</button>
+      </div>
+      <button class="btn-action-mobile" onmousedown="window.dispatchEvent(new KeyboardEvent('keydown', {key: ' '}))" ontouchstart="window.dispatchEvent(new KeyboardEvent('keydown', {key: ' '})); event.preventDefault()">⚔️ AÇÃO</button>
     </div>
 
     <!-- MINI MAPA DA VILA (CANTO DIREITO ACIMA DAS AÇÕES) -->
