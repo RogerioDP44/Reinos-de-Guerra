@@ -505,9 +505,9 @@
       "username": "rogerio",
       "kingdomName": "Império de Rogerio",
       "passwordHash": "$2a$10$.v/Mbs5OXwPQ2/jBPM9t5uJU1pLPyuxx7ThWhee.lfKIkeF590Jtq",
-      "gold": 16676,
+      "gold": 22788,
       "maxGold": 25000,
-      "wood": 15618,
+      "wood": 20202,
       "maxWood": 25000,
       "gems": 215,
       "trophies": 160,
@@ -580,12 +580,12 @@
         {
           "id": "alchemy",
           "name": "Academia de Alquimia",
-          "level": 4,
+          "level": 5,
           "icon": "🧪",
           "x": 0,
           "y": 2,
-          "isUpgrading": true,
-          "finishTime": 1788101425682,
+          "isUpgrading": false,
+          "finishTime": null,
           "reqLevel": 3
         },
         {
@@ -607,10 +607,10 @@
         "dragon": 5
       },
       "battleLogs": [],
-      "lastResourceUpdate": 1788101402236,
+      "lastResourceUpdate": 1788101786831,
       "createdAt": "2026-08-29T17:00:24.402Z",
-      "meat": 2194,
-      "leather": 1777,
+      "meat": 2228,
+      "leather": 1793,
       "spells": {
         "meteor": 0,
         "heal": 0

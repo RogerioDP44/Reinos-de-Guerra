@@ -64,6 +64,8 @@ class Database {
       xp: 0,
       maxXp: 50,
       damage: 1,
+      currentSkin: '👷', // Skin Padrão (Construtor)
+      unlockedSkins: ['👷'],
       isVip: false,
       shieldUntil: null, // Escudo de Paz contra saques
       clan: null,
@@ -611,6 +613,7 @@ class Database {
       .map(u => ({
         username: u.username,
         kingdomName: u.kingdomName,
+        currentSkin: u.currentSkin || '👷',
         trophies: u.trophies,
         gold: Math.floor(u.gold),
         wood: Math.floor(u.wood),

@@ -173,6 +173,47 @@ app.post('/api/kingdom/sync-hero', (req, res) => {
   }
 });
 
+app.post('/api/kingdom/buy-skin', (req, res) => {
+  try {
+    const { username, skinIcon, cost } = req.body;
+    const user = db.getUser(username);
+    if (!user) return res.status(404).json({ success: false, message: 'Reino não encontrado.' });
+    if (!user.unlockedSkins) user.unlockedSkins = ['👷'];
+
+    if (user.unlockedSkins.includes(skinIcon)) {
+      return res.status(400).json({ success: false, message: 'Você já possui esta Skin!' });
+    }
+    if (user.gems < cost) {
+      return res.status(400).json({ success: false, message: 'Gemas insuficientes para comprar a Skin!' });
+    }
+    user.gems -= cost;
+    user.unlockedSkins.push(skinIcon);
+    user.currentSkin = skinIcon; // Auto-equipa
+    db.save();
+    return res.json({ success: true, kingdom: user });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/kingdom/equip-skin', (req, res) => {
+  try {
+    const { username, skinIcon } = req.body;
+    const user = db.getUser(username);
+    if (!user) return res.status(404).json({ success: false, message: 'Reino não encontrado.' });
+    if (!user.unlockedSkins) user.unlockedSkins = ['👷'];
+
+    if (!user.unlockedSkins.includes(skinIcon)) {
+      return res.status(400).json({ success: false, message: 'Você não possui esta Skin!' });
+    }
+    user.currentSkin = skinIcon;
+    db.save();
+    return res.json({ success: true, kingdom: user });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 app.post('/api/kingdom/gather', (req, res) => {
   try {
     const { username, nodeType } = req.body;

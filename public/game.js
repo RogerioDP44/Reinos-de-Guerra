@@ -1247,8 +1247,8 @@ function initHero(startX, startY) {
   if (!hero && selfKingdom) {
     hero = {
       name: selfKingdom.kingdomName || selfKingdom.username,
-      icon: '👑',
-      weapon: '🗡️',
+      icon: selfKingdom.currentSkin || '👷',
+      weapon: selfKingdom.level >= 5 ? '🪄' : '⛏️',
       x: startX + 200,
       y: startY + 200,
       targetX: startX + 200,
@@ -1428,8 +1428,77 @@ async function syncHeroStats() {
       selfKingdom.xp = hero.xp;
       selfKingdom.maxXp = hero.maxXp;
       selfKingdom.damage = hero.damage;
+      if (hero.level >= 5) hero.weapon = '🪄';
     }
   } catch (err) {}
+}
+
+let pet = null;
+function updateAndRenderPet() {
+  if (!hero || hero.level < 3) return;
+  
+  if (!pet) {
+    pet = {
+      x: hero.x + 30,
+      y: hero.y + 30,
+      icon: '🐺',
+      speed: 2.0,
+      damage: 1,
+      targetEntity: null,
+      attackCooldown: 0
+    };
+    floatingEffects.push({ text: '🐺 Lobo Ajudante Invocado!', x: hero.x, y: hero.y - 40, color: '#38bdf8', life: 60 });
+  }
+
+  if (pet.attackCooldown > 0) pet.attackCooldown--;
+
+  let dx = 0, dy = 0, dist = 0;
+  
+  // Follow hero or attack hero's target
+  if (hero.targetEntity && hero.targetEntity.kind === 'animal') {
+    pet.targetEntity = hero.targetEntity;
+  } else {
+    pet.targetEntity = null;
+  }
+
+  if (pet.targetEntity && pet.targetEntity.hp > 0) {
+    dx = pet.targetEntity.x - pet.x;
+    dy = pet.targetEntity.y - pet.y;
+    dist = Math.hypot(dx, dy);
+    
+    if (dist > 30) {
+      pet.x += (dx / dist) * pet.speed;
+      pet.y += (dy / dist) * pet.speed;
+    } else if (pet.attackCooldown <= 0) {
+      pet.attackCooldown = 45; // 0.75s
+      pet.targetEntity.hp -= pet.damage;
+      floatingEffects.push({ text: '🐺 Mordida!', x: pet.targetEntity.x, y: pet.targetEntity.y - 20, color: '#f59e0b', life: 25 });
+      
+      if (pet.targetEntity.hp <= 0) {
+        const idx = wildAnimals.findIndex(a => a.id === pet.targetEntity.id);
+        if (idx !== -1) {
+          huntWildAnimal(pet.targetEntity, idx);
+          gainXp(pet.targetEntity.xpReward || 15);
+        }
+        pet.targetEntity = null;
+      }
+    }
+  } else {
+    // Follow hero
+    dx = hero.x - pet.x;
+    dy = hero.y - pet.y;
+    dist = Math.hypot(dx, dy);
+    if (dist > 50) {
+      pet.x += (dx / dist) * pet.speed;
+      pet.y += (dy / dist) * pet.speed;
+    }
+  }
+
+  // Render Pet
+  const bounce = (dist > 5) ? Math.abs(Math.sin(frameCount * 0.2)) * 4 : 0;
+  ctx.font = '24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(pet.icon, pet.x, pet.y - bounce);
 }
 
 function gainXp(amount) {
@@ -1460,14 +1529,27 @@ function performHeroAction() {
 
   playSound('hammer');
 
-  const strikeText = target.kind === 'tree' ? '🪓 *BAQUE!*' : target.kind === 'rock' ? '⛏️ *CLANG!*' : '⚔️ *GOLPE!*';
-  floatingEffects.push({
-    text: strikeText,
-    x: target.x + (Math.random() * 12 - 6),
-    y: target.y - 18,
-    color: target.kind === 'animal' ? '#ef4444' : '#f59e0b',
-    life: 25
-  });
+  const isMage = hero.level >= 5;
+
+  if (isMage && target.kind === 'animal') {
+    const strikeText = '✨ *MAGIA!*';
+    ctx.beginPath();
+    ctx.moveTo(hero.x, hero.y - 20);
+    ctx.lineTo(target.x, target.y);
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    floatingEffects.push({ text: strikeText, x: target.x, y: target.y - 18, color: '#a855f7', life: 25 });
+  } else {
+    const strikeText = target.kind === 'tree' ? '🪓 *BAQUE!*' : target.kind === 'rock' ? '⛏️ *CLANG!*' : '⚔️ *GOLPE!*';
+    floatingEffects.push({
+      text: strikeText,
+      x: target.x + (Math.random() * 12 - 6),
+      y: target.y - 18,
+      color: target.kind === 'animal' ? '#ef4444' : '#f59e0b',
+      life: 25
+    });
+  }
 
   // O dano aplicado cresce com o nível
   target.hp -= hero.damage;
@@ -1929,8 +2011,9 @@ function renderLoop() {
     // Aldeões Caminhando pela Vila
     updateAndRenderVillagers(startX, startY);
 
-    // Personagem Herói Imperador Avatar
+    // Renderizar Herói e Pet
     updateAndRenderHero(startX, startY);
+    updateAndRenderPet();
 
     // Renderizar outros jogadores
     for (const [uname, pData] of Object.entries(otherPlayers)) {
@@ -2334,3 +2417,92 @@ async function claimBattlePassReward(level) {
     }
   } catch (err) {}
 }
+
+// --- LOJA DE COSMÉTICOS ---
+window.toggleCosmeticsModal = function() {
+  const modal = document.getElementById('cosmetics-modal');
+  modal.classList.toggle('hidden');
+  if (!modal.classList.contains('hidden')) {
+    renderCosmeticsShop();
+  }
+}
+
+async function renderCosmeticsShop() {
+  if (!selfKingdom) return;
+  document.getElementById('cosmetics-gems-count').innerText = selfKingdom.gems || 0;
+  
+  const skins = [
+    { id: '👷', name: 'Construtor Padrão', cost: 0 },
+    { id: '🤴', name: 'Rei Majestoso', cost: 50 },
+    { id: '🥷', name: 'Mestre Ninja', cost: 100 },
+    { id: '🧙‍♂️', name: 'Mago Supremo', cost: 150 },
+    { id: '🧛', name: 'Lorde Vampiro', cost: 200 }
+  ];
+  
+  const list = document.getElementById('cosmetics-list');
+  list.innerHTML = '';
+  
+  const unlocked = selfKingdom.unlockedSkins || ['👷'];
+  
+  skins.forEach(s => {
+    const isUnlocked = unlocked.includes(s.id);
+    const isEquipped = selfKingdom.currentSkin === s.id;
+    
+    let btnHtml = '';
+    if (isEquipped) {
+      btnHtml = `<button class="btn btn-secondary btn-sm" disabled>EQUIPADO ✅</button>`;
+    } else if (isUnlocked) {
+      btnHtml = `<button class="btn btn-primary btn-sm" onclick="equipSkin('${s.id}')">EQUIPAR</button>`;
+    } else {
+      btnHtml = `<button class="btn btn-gold btn-sm" onclick="buySkin('${s.id}', ${s.cost})">COMPRAR por ${s.cost} 💎</button>`;
+    }
+    
+    list.innerHTML += `
+      <div class="building-card">
+        <div style="font-size:48px; text-align:center;">${s.id}</div>
+        <div style="font-weight:bold; font-size:16px; text-align:center; margin-top:10px; margin-bottom:15px;">${s.name}</div>
+        <div style="text-align:center;">${btnHtml}</div>
+      </div>
+    `;
+  });
+}
+
+window.equipSkin = async function(skinId) {
+  try {
+    const res = await fetch('/api/kingdom/equip-skin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: selfKingdom.username, skinIcon: skinId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      selfKingdom.currentSkin = data.kingdom.currentSkin;
+      if (hero) hero.icon = selfKingdom.currentSkin;
+      renderCosmeticsShop();
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {}
+};
+
+window.buySkin = async function(skinId, cost) {
+  try {
+    const res = await fetch('/api/kingdom/buy-skin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: selfKingdom.username, skinIcon: skinId, cost })
+    });
+    const data = await res.json();
+    if (data.success) {
+      selfKingdom.unlockedSkins = data.kingdom.unlockedSkins;
+      selfKingdom.currentSkin = data.kingdom.currentSkin;
+      selfKingdom.gems = data.kingdom.gems;
+      if (hero) hero.icon = selfKingdom.currentSkin;
+      renderCosmeticsShop();
+      updateHud(selfKingdom);
+      alert('Skin adquirida com sucesso!');
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {}
+};
